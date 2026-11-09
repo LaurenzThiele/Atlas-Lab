@@ -1,0 +1,912 @@
+/* The look of the page: an archive document, not a dashboard. Why plain CSS: the paper grain and the
+   vignette sit above the canvas as ordinary elements, so the map itself stays free of them and
+   clicks pass straight through. I use six colours, two fonts, and no shadows or rounded corners. */
+
+:root {
+  --carta: #eae3d2;
+  --inchiostro: #2a2723;
+  --rilievo: #9c8a6e;
+  --arno-blu: #2e5a87;
+  --piena: #1e3550;
+  --cotto: #9e3b26;
+  --texture-scale: 1;
+  --label-size: 23px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--carta);
+  color: var(--inchiostro);
+  font-family: "Courier Prime", monospace;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+}
+
+#map {
+  position: absolute;
+  inset: 0;
+  background: var(--carta);
+}
+
+/* Multiply lets the grain darken the page like ink in paper, instead of laying a grey veil on it. */
+#paper {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  background-image: url("./layers/paper.png");
+  background-size: calc(512px * var(--texture-scale));
+  mix-blend-mode: multiply;
+  opacity: 0.06;
+}
+
+#vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 21;
+  pointer-events: none;
+  /* Inchiostro at 15%, as an 8-bit hex alpha. The CSS minifier rewrites any other form to this
+     rounded value, so writing it here keeps the dev server and the build exactly alike. */
+  background: radial-gradient(#0000 55%, #2a272326 100%);
+}
+
+/* Labels are HTML, so that they can use Bodoni Moda Italic. The marker itself has no size. The
+   text hangs off it on the side each label asks for, so it stays clear of the dot it names. */
+.map-label {
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.map-label .text {
+  position: absolute;
+  white-space: nowrap;
+  font: italic 400 var(--label-size) "Bodoni Moda", serif;
+  color: var(--inchiostro);
+  line-height: 1;
+}
+
+/* On the public map the names sit over the halftone basin, so they get a paper halo about 2 px wide
+   and blurred by half a pixel: rings of small offsets in Carta, close enough together that no dark
+   pixel of the basin shows between them. The other look, map-label-display, keeps its own styles. */
+.atlas {
+  --paper-halo:
+    2px 0px 0.5px var(--carta),
+    -2px 0px 0.5px var(--carta),
+    0px 2px 0.5px var(--carta),
+    0px -2px 0.5px var(--carta),
+    1.4px 1.4px 0.5px var(--carta),
+    -1.4px 1.4px 0.5px var(--carta),
+    1.4px -1.4px 0.5px var(--carta),
+    -1.4px -1.4px 0.5px var(--carta),
+    1px 0px 0.5px var(--carta),
+    -1px 0px 0.5px var(--carta),
+    0px 1px 0.5px var(--carta),
+    0px -1px 0.5px var(--carta),
+    1.8px 0.8px 0.5px var(--carta),
+    -1.8px 0.8px 0.5px var(--carta),
+    1.8px -0.8px 0.5px var(--carta),
+    -1.8px -0.8px 0.5px var(--carta),
+    0.8px 1.8px 0.5px var(--carta),
+    -0.8px 1.8px 0.5px var(--carta),
+    0.8px -1.8px 0.5px var(--carta),
+    -0.8px -1.8px 0.5px var(--carta);
+}
+
+.map-label-public .text {
+  text-shadow: var(--paper-halo);
+}
+
+.map-label[data-side="right"] .text {
+  left: calc(var(--label-size) * 0.55);
+  top: 0;
+  transform: translateY(-50%);
+}
+
+.map-label[data-side="left"] .text {
+  right: calc(var(--label-size) * 0.55);
+  top: 0;
+  transform: translateY(-50%);
+}
+
+.map-label[data-side="top-left"] .text {
+  right: 0;
+  bottom: calc(var(--label-size) * 0.45);
+}
+
+.map-label[data-side="top"] .text {
+  left: 0;
+  bottom: calc(var(--label-size) * 0.85);
+  transform: translateX(-50%);
+}
+
+.map-label[data-side="bottom"] .text {
+  left: 0;
+  top: calc(var(--label-size) * 0.65);
+  transform: translateX(-50%);
+}
+
+/* ------------------------------------------------------------------------------------------------
+   The map's furniture, set the way a printed atlas sets its title, key and notes. Everything below
+   only applies to body.atlas, the public page. Paper, ink and one highlight, 1 px rules, square
+   corners, no shadows. Bodoni Moda speaks in the title and in names, Source Serif 4 sets sentences
+   and the key, and Courier Prime, the typewriter of the 1966 reports, sets only the numbers.
+   ------------------------------------------------------------------------------------------------ */
+
+.atlas {
+  --quiet: #5f574a; /* a tint of Inchiostro towards Carta, measured at 4.5:1 or better */
+  --rule: #2a272340; /* Inchiostro at 25 % */
+  --highlight: #9e3b26;
+  --wash: rgb(234 227 210 / 92%);
+  --sheet-width: 340px;
+  --text: "Source Serif 4", Georgia, serif;
+  --display: "Bodoni Moda", Georgia, serif;
+  --readout: "Courier Prime", monospace;
+  font-family: var(--text);
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.atlas #map,
+.atlas #paper,
+.atlas #vignette {
+  right: var(--sheet-width);
+}
+
+.atlas.sheet-folded {
+  --sheet-width: 0px;
+}
+
+.atlas button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.atlas a {
+  color: inherit;
+  text-underline-offset: 2px;
+}
+
+/* One focus ring for every control, so a keyboard reader always knows where they are. */
+.atlas :focus-visible {
+  outline: 2px solid var(--inchiostro);
+  outline-offset: 2px;
+}
+
+/* The canvas fills the window, so its ring has to sit just inside the edge to be seen at all. */
+.atlas .maplibregl-canvas:focus-visible {
+  outline: 2px solid var(--inchiostro);
+  outline-offset: -2px;
+}
+
+.atlas [hidden] {
+  display: none !important;
+}
+
+.atlas svg path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: square;
+}
+
+/* Title and lede sit on the map, under the grain and the vignette like the rest of the print. The
+   wash cannot be seen on bare paper. It only shows if the reader moves relief under the text, where
+   the contrast would otherwise fall below 4.5:1. */
+#title {
+  position: fixed;
+  z-index: 15;
+  left: 28px;
+  top: 24px;
+  width: 464px;
+  padding: 12px;
+  pointer-events: none;
+}
+
+/* The wash fades out at its edges, because a hard edge across the relief would read as a card. The
+   fade stays in the padding, so the text always sits on the full wash. */
+#title,
+#foot > * {
+  isolation: isolate;
+}
+
+#title::before,
+#foot > *::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--wash);
+  mask-image:
+    linear-gradient(to right, transparent, #000 10px, #000 calc(100% - 10px), transparent),
+    linear-gradient(to bottom, transparent, #000 10px, #000 calc(100% - 10px), transparent);
+  mask-composite: intersect;
+}
+
+#title h1 {
+  margin: 0 0 12px;
+  font: 700 40px/1.05 var(--display);
+}
+
+#title p {
+  margin: 0;
+  max-width: 400px;
+  font-size: 16.5px;
+  line-height: 1.45;
+}
+
+#title b {
+  font-weight: 600;
+}
+
+/* The foot of the map: the hint line and the replay button. */
+#foot {
+  position: fixed;
+  z-index: 15;
+  left: 32px;
+  bottom: 20px;
+  max-width: calc(100vw - var(--sheet-width) - 120px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+#foot > * {
+  position: relative;
+  padding: 8px 12px;
+  margin: -6px -4px;
+}
+
+/* One hint line holds everything about how to use the map: first what a click does, then the
+   gestures. It wraps to two or three short lines and is always shown. */
+#hint {
+  max-width: 360px;
+  margin-bottom: 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--quiet);
+}
+
+#hint i {
+  font-style: normal;
+  color: var(--inchiostro);
+}
+
+#hint .narrow {
+  display: none;
+}
+
+/* Touch screens get their own words: Tap, two fingers, pinch. */
+@media (hover: none) {
+  #hint .wide {
+    display: none;
+  }
+
+  #hint .narrow {
+    display: inline;
+  }
+}
+
+/* The replay, set exactly like the Play control of a timeline band on the other maps. */
+#replay-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+#replay {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+  color: var(--inchiostro);
+}
+
+.atlas .play-icon path {
+  fill: currentColor;
+  stroke-width: 0;
+}
+
+.play-hint {
+  color: var(--quiet);
+}
+
+/* Touch screens have no Space bar to press. */
+@media (hover: none) {
+  .play-hint {
+    display: none;
+  }
+}
+
+/* Map buttons: one flat strip, a hairline between buttons, a heavier rule between groups. */
+#buttons {
+  position: fixed;
+  z-index: 15;
+  right: calc(var(--sheet-width) + 16px);
+  bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  background: var(--carta);
+  border: 1px solid var(--inchiostro);
+}
+
+#buttons button {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+}
+
+/* Controls need 3:1 on the real paper under the grain, so these hairlines are far heavier than the
+   sheet's 25 % rules. */
+#buttons button + button {
+  border-top: 1px solid rgb(42 39 35 / 70%);
+}
+
+#buttons button.group {
+  border-top: 1px solid var(--inchiostro);
+}
+
+#buttons button:hover {
+  background: var(--rule);
+}
+
+/* "On" is a heavier drawn icon, not a filled button, so the hairlines around it keep their 3:1. */
+#buttons button[data-on="true"] svg path {
+  stroke-width: 2.2;
+}
+
+/* The tooltip: a small printed label to the left of its button (or of the strip), level with it. */
+.tip {
+  position: fixed;
+  z-index: 40;
+  margin: 0;
+  padding: 3px 8px;
+  background: var(--carta);
+  color: var(--inchiostro);
+  border: 1px solid var(--inchiostro);
+  font: 400 13px/1.3 var(--text);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+#north svg path {
+  fill: currentColor;
+  stroke: none;
+}
+
+/* The annotation: a leader from the feature to a note set straight on the map. */
+#leader {
+  position: fixed;
+  z-index: 16;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+}
+
+#leader line {
+  stroke: var(--leader, var(--inchiostro));
+  stroke-width: 1;
+}
+
+#anchor {
+  position: fixed;
+  z-index: 16;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border: 2px solid var(--highlight);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+#annotation {
+  position: fixed;
+  z-index: 16;
+  width: 240px;
+  padding: 2px 0 2px 12px;
+  border-left: 1px solid var(--leader, var(--inchiostro));
+  pointer-events: none;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+#annotation.flip {
+  padding: 2px 12px 2px 0;
+  border-left: 0;
+  border-right: 1px solid var(--leader, var(--inchiostro));
+}
+
+/* The note has no wash behind it. The same thin paper halo as the place names keeps its letters
+   clear of a contour or a river that runs underneath. */
+#annotation {
+  text-shadow: var(--paper-halo);
+}
+
+#annotation h3 {
+  margin: 0 0 2px;
+  font: italic 400 18px/1.2 var(--display);
+}
+
+#annotation p {
+  margin: 0;
+}
+
+#annotation .source {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--quiet);
+}
+
+#annotation .num {
+  font-family: var(--readout);
+  font-size: 15px;
+}
+
+/* The sheet: one continuous column of solid paper, with no tabs and no cards inside it. */
+#sheet {
+  position: fixed;
+  z-index: 30;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 340px;
+  padding: 0 20px 20px;
+  overflow-y: auto;
+  background: var(--carta);
+  border-left: 1px solid var(--rule);
+}
+
+.sheet-folded #sheet {
+  display: none;
+}
+
+/* The top of the sheet is a row of its own, holding only the fold button, so the button never
+   reads as part of the Layers heading. */
+/* 44 px high. The 32 px button reaches 8 px into the side padding, so its right edge is 12 px from
+   the sheet's edge and the icon inside lines up with the right edge of the text. */
+.sheet-top {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: 44px;
+  margin: 0 -8px 12px 0;
+}
+
+/* The two sheet icons keep their own 1.5 px line, over the general icon rule. */
+.atlas .sheet-icon path {
+  stroke-width: 1.5;
+}
+
+/* The same icon colours on both sheet buttons: 75 % ink at rest, full ink on hover. The icon fades,
+   not the colour, so it stays the ink of the palette. */
+.sheet-icon {
+  opacity: 0.75;
+}
+
+#sheet-fold:hover .sheet-icon,
+#sheet-open:hover .sheet-icon {
+  opacity: 1;
+}
+
+#sheet-fold {
+  box-sizing: border-box;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  color: var(--inchiostro);
+  border: 1px solid transparent; /* always there, so the hover rule never shifts the icon */
+}
+
+#sheet-fold:hover {
+  border-color: var(--rule);
+}
+
+#grab {
+  display: none;
+}
+
+/* Built like the map buttons: 34 px high, solid paper, a 1 px rule, square corners. */
+#sheet-open {
+  position: fixed;
+  z-index: 25;
+  right: 16px;
+  top: 24px;
+  height: 34px;
+  padding: 0 12px;
+  align-items: center;
+  gap: 8px;
+  background: var(--carta);
+  border: 1px solid var(--inchiostro);
+  font: 400 14px/1 var(--text);
+}
+
+#sheet-open:not([hidden]) {
+  display: inline-flex;
+}
+
+#sheet section {
+  padding-bottom: 20px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--rule);
+}
+
+#sheet section:last-child {
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-bottom: 0;
+}
+
+#sheet h2 {
+  margin: 0 0 8px;
+  font: 600 15px/1.3 var(--text);
+}
+
+#sheet h2 small {
+  margin-left: 6px;
+  font: normal 400 13px/1.3 var(--text);
+  font-variant: normal;
+  text-transform: none;
+  color: var(--quiet);
+}
+
+.k {
+  display: grid;
+  grid-template-columns: 34px 1fr auto;
+  gap: 0 12px;
+  align-items: center;
+  width: 100%;
+  padding: 5px 0;
+}
+
+.k .count {
+  font-size: 12.5px;
+  color: var(--quiet);
+  font-variant-numeric: tabular-nums;
+}
+
+.k[aria-pressed="false"] {
+  color: var(--quiet);
+}
+
+.k[aria-pressed="false"] .sample {
+  opacity: 0.35;
+}
+
+.k[aria-pressed="false"] .name {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+/* Each sample is what the map really draws: the same colour, width and pattern. */
+.sample {
+  position: relative;
+  display: block;
+  width: 34px;
+  height: 14px;
+}
+
+.sample::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.s-basin {
+  background: url("./layers/halftone.png") 0 0 / 16px, rgb(30 53 80 / 35%);
+  border: 1.2px solid var(--inchiostro);
+}
+
+.s-basin::before {
+  content: none;
+}
+
+.s-upstream::before {
+  border-top: 2px solid var(--arno-blu);
+}
+
+.s-arno::before {
+  border-top: 4px solid var(--arno-blu);
+}
+
+.s-downstream::before {
+  border-top: 2px solid rgb(46 90 135 / 30%);
+}
+
+.s-contours::before {
+  border-top: 1px solid rgb(42 39 35 / 70%);
+}
+
+.s-bridge::before {
+  content: none;
+}
+
+.s-bridge::after {
+  content: "";
+  position: absolute;
+  left: 11px;
+  top: 1px;
+  width: 12px;
+  height: 12px;
+  box-sizing: border-box;
+  background: var(--highlight);
+  border: 1.5px solid var(--carta);
+  border-radius: 50%;
+}
+
+.note {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--quiet);
+}
+
+/* Figures as short lines, the number in the typewriter face, the unit and words in the text face. */
+.fig {
+  margin: 0 0 10px;
+  line-height: 1.4;
+}
+
+.fig:last-child {
+  margin-bottom: 0;
+}
+
+.fig .num {
+  font-family: var(--readout);
+  font-size: 19px;
+  white-space: nowrap;
+}
+
+/* A line with a place on the map ends in a crosshair button. The text stays plain: never a link. */
+.fig.has-place {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* .atlas in front, so the general button rule (colour: inherit) does not win. */
+.atlas .show-on-map {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: -1px -7px 0 0; /* the hit area overhangs, so the icon itself lines up with the text edge */
+  color: rgb(42 39 35 / 75%);
+}
+
+.atlas .show-on-map:hover {
+  color: var(--inchiostro);
+}
+
+.atlas .show-on-map path {
+  stroke-width: 1.3;
+  stroke-linecap: butt;
+}
+
+#sources {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+
+.links {
+  display: flex;
+  gap: 16px;
+  margin: 10px 0 0;
+  font-size: 14px;
+}
+
+.atlas button.text {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+/* About this map and the downloads: the same sheet of paper on every map. */
+dialog {
+  box-sizing: border-box;
+  width: 680px;
+  max-width: calc(100vw - 16px);
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 28px;
+  background: var(--carta);
+  color: var(--inchiostro);
+  border: 1px solid var(--inchiostro);
+  font-size: 14.5px;
+  line-height: 1.45;
+}
+
+/* The page behind fades into the paper instead of going dark: Carta at 55 %. */
+dialog::backdrop {
+  background: rgb(234 227 210 / 55%);
+}
+
+/* Focus lands on the dialog itself when it opens. It is the whole box, so it needs no ring. */
+.atlas dialog:focus,
+.atlas dialog:focus-visible {
+  outline: none;
+}
+
+dialog h2 {
+  margin: 0 0 12px;
+  font: 700 30px/1.1 var(--display);
+}
+
+dialog h3 {
+  margin: 16px 0 4px;
+  font: 600 15px/1.3 var(--text);
+}
+
+dialog a {
+  text-decoration: underline;
+}
+
+dialog .fetched {
+  margin-top: 16px;
+  white-space: pre-line; /* one line per source, if they were fetched on different days */
+  color: var(--quiet);
+}
+
+dialog p,
+dialog ul {
+  margin: 0 0 8px;
+}
+
+dialog ul {
+  padding-left: 18px;
+}
+
+/* A command in a sentence stays in the text face: monospace is only the readout face here. */
+dialog code {
+  font: inherit;
+}
+
+/* The close button stays at the top right while the notes scroll under it. A sticky offset counts
+   from the inside of the padding, so -21 px puts it 7 px from the rule, where it starts out. */
+dialog form.close {
+  position: sticky;
+  top: -21px;
+  float: right;
+  margin: -21px -21px 0 8px;
+}
+
+dialog form.close button {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  color: var(--inchiostro);
+}
+
+
+#load-error {
+  position: fixed;
+  z-index: 40;
+  left: 32px;
+  top: 200px;
+  margin: 0;
+  max-width: 400px;
+}
+
+/* Phones: nothing is hidden, only rearranged. The sheet becomes a bottom sheet with a grab line. */
+@media (max-width: 900px) {
+  .atlas {
+    --sheet-width: 0px;
+    --label-size: 17px;
+  }
+
+  .atlas #map,
+  .atlas #paper,
+  .atlas #vignette {
+    bottom: 30%;
+  }
+
+  #title {
+    left: 4px;
+    top: 4px;
+    right: 4px;
+    width: auto;
+    padding: 8px;
+  }
+
+  #title h1 {
+    margin-bottom: 4px;
+    font-size: 21px;
+    white-space: nowrap;
+  }
+
+  #title p {
+    font-size: 15px;
+    line-height: 1.35;
+  }
+
+  #foot {
+    left: 8px;
+    right: 54px;
+    bottom: calc(30% + 8px);
+    max-width: none;
+  }
+
+  #buttons {
+    right: 8px;
+    bottom: calc(30% + 8px);
+  }
+
+  #annotation {
+    width: 220px;
+  }
+
+  #sheet {
+    left: 0;
+    top: auto;
+    width: 100%;
+    height: 30%;
+    padding: 0 20px 20px;
+    border-left: 0;
+    border-top: 1px solid var(--inchiostro);
+  }
+
+  /* Open, the sheet stops under the title and lede, so nothing is cut in half. */
+  .sheet-open #sheet {
+    height: calc(100% - 92px);
+  }
+
+  .sheet-folded #sheet {
+    display: block;
+  }
+
+  .sheet-top,
+  #sheet-fold,
+  #sheet-open,
+  #sheet-open:not([hidden]) {
+    display: none;
+  }
+
+  /* A generous target for a thumb, with a small line in the middle. */
+  #grab {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: calc(100% + 40px);
+    height: 34px;
+    margin: 0 -20px 4px;
+    background: var(--carta);
+    touch-action: none;
+  }
+
+  #grab span {
+    display: block;
+    width: 44px;
+    border-top: 2px solid var(--quiet);
+  }
+
+  .k {
+    padding: 7px 0;
+  }
+}

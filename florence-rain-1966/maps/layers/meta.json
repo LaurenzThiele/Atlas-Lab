@@ -1,0 +1,20 @@
+{
+  "sources": [
+    {
+      "name": "HydroBASINS Europe, level 12, v1c (standard, without lakes)",
+      "downloaded": "2026-11-05"
+    },
+    {
+      "name": "HydroRIVERS Europe, v1.0",
+      "downloaded": "2026-11-05"
+    },
+    {
+      "name": "Copernicus DEM GLO-30",
+      "downloaded": "2026-11-05"
+    }
+  ],
+  "network_km": {
+    "upstream_rivers": 1139.6,
+    "downstream_rivers": 939.3
+  }
+}

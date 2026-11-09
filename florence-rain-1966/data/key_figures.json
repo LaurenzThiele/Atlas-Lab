@@ -1,0 +1,58 @@
+[
+  {
+    "id": "death_toll",
+    "value": 35,
+    "unit": "people",
+    "display": "35",
+    "source": "Italian Civil Protection (Dipartimento della Protezione Civile), https://servizio-nazionale.protezionecivile.gov.it/en/pagina-base/flood-florence/",
+    "method": "Taken from the source: \"A total of 35 people died in the region.\""
+  },
+  {
+    "id": "flood_date",
+    "value": "1966-11-04",
+    "unit": "date",
+    "display": "4 November 1966",
+    "source": "Italian Civil Protection (Dipartimento della Protezione Civile), https://servizio-nazionale.protezionecivile.gov.it/en/pagina-base/flood-florence/",
+    "method": "Taken from the source: the Arno flooded on the night of 3 to 4 November 1966."
+  },
+  {
+    "id": "worst_flood",
+    "value": 1557,
+    "unit": "year",
+    "display": "worst flood in centuries",
+    "source": "The Local Italy, In photos: remembering the great flood of Florence (2019), https://www.thelocal.it/20191104/in-photos-the-great-flood-of-florence-arno-1966",
+    "method": "Taken from the source: \"At their height the waters reached nearly seven metres, a level not seen since the disastrous flood of 1557.\""
+  },
+  {
+    "id": "basin_area",
+    "value": 4616.3,
+    "unit": "km²",
+    "display": "4,600 km²",
+    "source": "HydroBASINS level 12, v1c (HydroSHEDS)",
+    "method": "Union of the 33 level-12 units that drain through Ponte Vecchio, area in EPSG:3035."
+  },
+  {
+    "id": "times_florence",
+    "value": 45.1,
+    "unit": "x",
+    "display": "45 times the size of Florence",
+    "source": "HydroBASINS level 12 (HydroSHEDS); ISTAT",
+    "method": "basin_area / area of the comune of Firenze (102.31 km², ISTAT)."
+  },
+  {
+    "id": "arno_length",
+    "value": 240.8,
+    "unit": "km",
+    "display": "241 km",
+    "source": "HydroRIVERS v1.0 (HydroSHEDS)",
+    "method": "74 reaches from the spring on Monte Falterona down NEXT_DOWN to the sea, length in EPSG:32632."
+  },
+  {
+    "id": "florence_area",
+    "value": 102.31,
+    "unit": "km²",
+    "display": "102 km²",
+    "source": "ISTAT, Approfondimento Firenze (2024), https://www.istat.it/wp-content/uploads/2024/06/Approfondimento_Firenze.pdf",
+    "method": "Taken from the source: area of the comune of Firenze (ISTAT code 048017)."
+  }
+]

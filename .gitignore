@@ -8,3 +8,13 @@ __pycache__/
 *.part*
 site/dist/
 site/node_modules/
+
+florence-rain-1966/maps/layers/terrain/
+florence-rain-1966/maps/layers/terrain_city/
+florence-rain-1966/maps/layers/basin.geojson
+florence-rain-1966/maps/layers/basin_units.geojson
+florence-rain-1966/maps/layers/rivers_upstream.geojson
+florence-rain-1966/maps/layers/rivers_downstream.geojson
+florence-rain-1966/maps/layers/arno.geojson
+florence-rain-1966/maps/layers/arno_display.geojson
+florence-rain-1966/maps/layers/points.geojson
