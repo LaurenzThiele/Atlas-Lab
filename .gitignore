@@ -1,0 +1,8 @@
+.venv/
+node_modules/
+**/data/raw/
+dist/
+__pycache__/
+.ruff_cache/
+*.pyc
+*.part*
