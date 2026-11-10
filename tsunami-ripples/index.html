@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Every tsunami on record | Atlas Lab</title>
+    <meta
+      name="description"
+      content="29,340 tsunami records since the year 684, sized by wave height, from the NOAA NCEI Global Historical Tsunami Database."
+    />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="favicon-32.png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <script type="module" crossorigin src="./assets/index-BGosgl9M.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/array-utils-flat-BL8Cekj1.js">
+    <link rel="modulepreload" crossorigin href="./assets/expression-C4x9yiMU.js">
+    <link rel="modulepreload" crossorigin href="./assets/get-attribute-from-layouts-Dd2gixpo.js">
+    <link rel="stylesheet" crossorigin href="./assets/index-DlvCY4WC.css">
+  </head>
+  <body>
+    <div id="map" aria-label="Globe of tsunami records, sized by wave height, over a flat tint of the land."></div>
+    <div id="texture" aria-hidden="true"></div>
+    <div id="vignette" aria-hidden="true"></div>
+
+    <!-- All of the page lives here. createMap() in main.js draws the globe without any of it. -->
+    <div id="ui" hidden>
+      <div id="labels" aria-hidden="true"></div>
+
+      <header id="title">
+        <h1>Every tsunami on record</h1>
+        <p id="lede"></p>
+      </header>
+
+      <span id="feature-dot" hidden></span>
+      <span id="leader" hidden></span>
+      <div id="annotation" role="status" hidden></div>
+
+      <!-- Everything about how to use the map, in one place: what a click gives, then the gestures. -->
+      <p id="hint">
+        <span class="hint-mouse"><i>Click</i> a tsunami record to see its place, date, wave height and deaths. <i>Drag</i> to move, <i>Ctrl + drag</i> or <i>right-drag</i> to tilt and turn, <i>scroll</i> to zoom.</span>
+        <span class="hint-touch"><i>Tap</i> a tsunami record to see its place, date, wave height and deaths. <i>Drag</i> to move, <i>two fingers</i> to tilt and turn, <i>pinch</i> to zoom.</span>
+      </p>
+
+      <nav id="map-buttons" aria-label="Map view">
+        <button id="zoom-in" type="button" aria-label="Zoom in">
+          <svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 5v10M5 10h10" /></svg>
+        </button>
+        <button id="zoom-out" type="button" aria-label="Zoom out">
+          <svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 10h10" /></svg>
+        </button>
+        <button id="north" class="group-start" type="button" aria-label="Reset north and tilt">
+          <svg id="north-arrow" width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3l3.4 13L10 13.4 6.6 16z" /></svg>
+        </button>
+        <button id="tilt" class="group-start" type="button" aria-label="Tilt to 3D" aria-pressed="false">
+          <svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3l6 3.5v7L10 17l-6-3.5v-7zM4 6.5l6 3.5 6-3.5M10 10v7" /></svg>
+        </button>
+        <button id="home" type="button" aria-label="Back to the start view">
+          <svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 8V5h3M15 8V5h-3M5 12v3h3M15 12v3h-3" /></svg>
+        </button>
+      </nav>
+      <!-- One label for the whole strip. ui.js fills it with the aria-label of the button it names. -->
+      <span id="tooltip" role="tooltip" hidden></span>
+
+      <section id="timeline" aria-label="Timeline">
+        <div class="readout">
+          <output id="year" class="readout-value">684</output>
+          <p id="readout-count" class="readout-count"></p>
+          <div class="play-row">
+            <button id="play" type="button">
+              <svg id="play-icon" width="12" height="12" viewBox="0 0 20 20" aria-hidden="true"><path d="M6 4v12l10-6z" /></svg>
+              <span id="play-word">Play</span>
+            </button>
+            <span class="quiet play-hint">or press Space</span>
+          </div>
+        </div>
+        <div id="axis" role="slider" tabindex="0" aria-label="Timeline, 684 to 2026" aria-valuemin="684" aria-valuemax="2026" aria-valuenow="684">
+          <span class="axis-base"></span>
+          <span id="axis-done"></span>
+          <span id="axis-head"></span>
+          <span class="axis-note">Scale follows the number of tsunamis</span>
+        </div>
+        <div class="speeds words" role="group" aria-label="Speed">
+          <button type="button" data-speed="0.5" aria-pressed="false" aria-label="Half speed">½×</button>
+          <button type="button" data-speed="1" aria-pressed="true" aria-label="Normal speed">1×</button>
+          <button type="button" data-speed="4" aria-pressed="false" aria-label="Four times speed">4×</button>
+        </div>
+      </section>
+
+      <button id="sheet-open" type="button" aria-label="Show the sheet" hidden>
+        <svg class="sheet-icon" viewBox="0 0 18 18" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" aria-hidden="true"><rect x="2" y="3" width="14" height="12"/><rect x="11" y="3" width="5" height="12" fill="currentColor" stroke="none"/><path d="M8 6.5L5.5 9 8 11.5"/></svg>
+        <span>Map info</span>
+      </button>
+
+      <aside id="sheet" aria-label="Layers, numbers and sources">
+        <button id="sheet-grab" type="button" aria-label="Open or close this sheet" aria-expanded="false"><span></span></button>
+        <!-- The top row holds only the fold button, so it never reads as part of the Layers heading. -->
+        <div class="sheet-top">
+          <button id="sheet-fold" type="button" aria-label="Hide the sheet">
+            <svg class="sheet-icon" viewBox="0 0 18 18" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" aria-hidden="true"><rect x="2" y="3" width="14" height="12"/><path d="M11 3v12"/><path d="M5.5 6.5L8 9 5.5 11.5"/></svg>
+          </button>
+        </div>
+
+        <section class="part">
+          <h2>Layers <small>click to show or hide</small></h2>
+          <button id="key-runups" class="key-entry" type="button" aria-pressed="true">
+            <svg class="sample" width="34" height="22" viewBox="0 0 34 22" aria-hidden="true">
+              <circle class="sample-foam" cx="17" cy="11" r="10" />
+              <circle class="sample-foam" cx="17" cy="11" r="6.6" />
+              <circle class="sample-foam" cx="17" cy="11" r="3.3" />
+            </svg>
+            <span class="key-name">Tsunami records</span>
+            <span id="key-runups-count" class="quiet"></span>
+          </button>
+          <div id="ramp" class="ramp" role="img"></div>
+          <button id="key-highlights" class="key-entry" type="button" aria-pressed="true">
+            <svg class="sample" width="34" height="22" viewBox="0 0 34 22" aria-hidden="true">
+              <circle class="sample-red" cx="17" cy="11" r="7" />
+            </svg>
+            <span class="key-name">First, tallest, deadliest</span>
+            <span class="quiet">3</span>
+          </button>
+
+          <p class="option-label">
+            Draw as
+            <button id="read-info" class="info-button" type="button" aria-label="How to read the map" aria-describedby="read-note">
+              <svg width="14" height="14" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.2" /><path d="M10 9v5.5M10 5.8v.4" /></svg>
+            </button>
+          </p>
+          <span id="read-note" class="tip tip-wide" role="tooltip" hidden></span>
+          <div class="words" role="group" aria-label="Draw as">
+            <button type="button" data-mark="rings" aria-pressed="true">Rings</button>
+            <button type="button" data-mark="columns" aria-pressed="false">3D columns</button>
+          </div>
+
+          <label class="option-label slider-label" for="min-height">
+            Minimum wave height
+            <output id="min-height-value" for="min-height">0 m</output>
+          </label>
+          <input id="min-height" type="range" min="0" max="1000" value="0" />
+        </section>
+
+        <section class="part">
+          <h2>In numbers</h2>
+          <div id="numbers"></div>
+        </section>
+
+        <section class="part">
+          <h2>Sources</h2>
+          <ol class="sources">
+            <li>
+              NOAA NCEI, Global Historical Tsunami Database: runup records and events. Public domain.
+              <a href="https://www.ngdc.noaa.gov/hazard/tsu_db.shtml">www.ngdc.noaa.gov/hazard/tsu_db.shtml</a>
+            </li>
+            <li>
+              Natural Earth, land 1:50m: land outline. Public domain.
+              <a href="https://www.naturalearthdata.com">www.naturalearthdata.com</a>
+            </li>
+          </ol>
+          <p class="links">
+            <button id="about-open" class="text-link" type="button" aria-haspopup="dialog">About this map</button>
+            <button id="download-open" class="text-link" type="button" aria-haspopup="dialog">Download the data</button>
+          </p>
+        </section>
+      </aside>
+
+      <!-- The notes behind the map. The inner div carries the padding, so a click whose target is
+           the dialog itself can only be a click on the backdrop. -->
+      <dialog id="about" class="notes" aria-labelledby="about-heading" tabindex="-1">
+        <div class="dialog-body">
+          <button id="about-close" class="notes-close" type="button" aria-label="Close">
+            <svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15" /></svg>
+          </button>
+          <h2 id="about-heading">About this map</h2>
+          <p>
+            Tsunami records that NCEI rates definite or probable (validity 3 or more), with
+            coordinates and a wave height above 0 m.
+          </p>
+          <p>
+            The timeline is scaled by the number of tsunamis, not by years: each of the 1,124
+            tsunamis gets the same stretch of the axis, and all its records appear together. Most
+            tsunamis on record are recent, so 684 to 1900 takes up the first sixth of the axis and
+            the years since 2000 the last third. A large tsunami arrives as one burst: the 2011
+            Tohoku tsunami left 6,193 records, a fifth of all of them. The year labels sit where
+            their year begins.
+          </p>
+          <h3>Licences</h3>
+          <p>
+            The NOAA NCEI Global Historical Tsunami Database is a work of the US government and in
+            the public domain.
+          </p>
+          <p>Natural Earth coastlines are in the public domain.</p>
+          <!-- When the data was fetched, from layers/meta.json. ui.js writes it. -->
+          <div id="data-fetched" class="quiet"></div>
+        </div>
+      </dialog>
+
+      <!-- The layers the map loads, as files. Every source behind them is public domain, so each
+           one may be passed on; the raw downloads are linked at their source. -->
+      <dialog id="download" class="notes" aria-labelledby="download-heading" tabindex="-1">
+        <div class="dialog-body">
+          <button id="download-close" class="notes-close" type="button" aria-label="Close">
+            <svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15" /></svg>
+          </button>
+          <h2 id="download-heading">Download the data</h2>
+          <p>The layers exactly as the map loads them, in JSON.</p>
+          <ul class="files">
+            <li><a href="layers/rings.json" download="tsunami-records.json">Tsunami records</a>: all 29,340 records as columns of place, coordinates, date, wave height, deaths and NCEI tsunami number. NOAA NCEI, public domain.</li>
+            <li><a href="layers/highlights.json" download="tsunami-highlights.json">First, tallest, deadliest</a>: the three red records, plus every record of the 2004 tsunami. NOAA NCEI, public domain.</li>
+            <li><a href="layers/regions.json" download="tsunami-regions.json">Regions</a>: the NCEI region codes and their names. NOAA NCEI, public domain.</li>
+            <li><a href="layers/ring_of_fire_order.json" download="tsunami-pacific-rim.json">Pacific rim order</a>: the bearing of every Pacific record seen from the middle of the ocean. NOAA NCEI, public domain.</li>
+            <li><a href="layers/figures.json" download="tsunami-figures.json">Figures</a>: the numbers in this sheet, each with how it was computed. NOAA NCEI, public domain.</li>
+            <li><a href="layers/land.json" download="land-50m.json">Land</a>: Natural Earth 1:50m land as plain polygons. Natural Earth, public domain.</li>
+          </ul>
+          <p>
+            The original downloads come from their sources:
+            <a href="https://www.ngdc.noaa.gov/hazard/tsu_db.shtml">NOAA NCEI Global Historical Tsunami Database</a>
+            and <a href="https://www.naturalearthdata.com/downloads/50m-physical-vectors/50m-land/">Natural Earth 1:50m land</a>.
+            Rebuild these layers from them with uv run maps/prepare.py (see the README).
+          </p>
+        </div>
+      </dialog>
+    </div>
+
+  </body>
+</html>
