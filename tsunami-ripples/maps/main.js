@@ -674,7 +674,9 @@ const DEFAULT_LAYERS = {
  *                    needs. The page never uses the sweep, so it does not download the file.
  *
  * Returned:
- *   ready            a promise: data, fonts, grain and GPU are all there, the map can draw
+ *   ready            a promise that resolves once the start view is really on screen: every
+ *                    layer loaded, a full frame drawn with all of them, two more animation frames,
+ *                    and document.fonts.ready. Start any animation from here, never earlier
  *   setView(camera)  move the camera; give only the fields you want to change
  *   setLayers(layers)  what to show; give only the fields you want to change:
  *     land           0 to 1: how strongly the land tint shows; 0 removes it
@@ -737,6 +739,23 @@ export function createMap(container, options = {}) {
 
   const deckViewState = () => ({ ...camera, zoom: camera.zoom + zoomOffset });
 
+  // The first full frame. deck.gl loads and uploads a layer's data on its own schedule, so a frame
+  // can be drawn while a layer is still empty. I wait for a frame after which every layer reports
+  // isLoaded: only that frame shows the whole start view.
+  let firstFrameDrawn;
+  const firstFrame = new Promise((resolve) => {
+    firstFrameDrawn = resolve;
+  });
+  let layersSet = false;
+  function afterRender() {
+    if (!layersSet || !firstFrameDrawn) return;
+    const drawn = deck.layerManager?.getLayers() ?? [];
+    if (drawn.length === 0 || !drawn.every((layer) => layer.isLoaded)) return;
+    firstFrameDrawn();
+    firstFrameDrawn = null;
+  }
+  const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+
   const deck = new Deck({
     parent: container,
     ...(width && height ? { width, height } : {}),
@@ -758,6 +777,11 @@ export function createMap(container, options = {}) {
       onViewChange?.(camera);
     },
     ...deckProps,
+    // Kept after deckProps, so a caller's onAfterRender runs inside mine instead of replacing it.
+    onAfterRender: (context) => {
+      afterRender();
+      deckProps.onAfterRender?.(context);
+    },
   });
 
   function redItems() {
@@ -861,6 +885,7 @@ export function createMap(container, options = {}) {
       muted: new Set(layers.highlights.map((h) => h.index)),
     });
     deck.setProps({ viewState: deckViewState(), layers: buildLayers() });
+    layersSet = true;
   }
 
   // A year is turned into a moment on the timeline: the share where the next year's first tsunami
@@ -909,6 +934,13 @@ export function createMap(container, options = {}) {
       deckLoad,
     ]);
     requestFlush();
+    // Then the picture itself: a frame with every layer drawn, two more frames so the browser has
+    // put it on screen, and the fonts of the page around the map. Anything that animates waits on
+    // this, so nobody sees a timeline start on a half-drawn globe.
+    await firstFrame;
+    await nextFrame();
+    await nextFrame();
+    await document.fonts.ready;
   })();
 
   return {

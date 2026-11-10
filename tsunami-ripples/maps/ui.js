@@ -46,6 +46,11 @@ const SHEET_OPEN_SHARE = 0.92;
 // passes over the strip does not flash labels. Keyboard focus shows it at once.
 const TOOLTIP_DELAY_MS = 400;
 const TOOLTIP_GAP_PX = 6;
+// The opening: the start view stands still this long after the map is ready, then the record plays.
+const AUTOPLAY_PAUSE_MS = 400;
+// One stalled frame (a tab coming back from the background, a busy phone) must not jump the
+// timeline ahead. Anything that draws at least two frames a second still plays in real time.
+const MAX_STEP_S = 0.5;
 
 const NCEI_EVENT_URL = "https://www.ngdc.noaa.gov/hazel/view/hazards/tsunami/event-more-info/";
 const MONTHS = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(" ");
@@ -275,7 +280,15 @@ async function startPage() {
   const ui = {
     clockS: 0,
     speed: 1,
-    playing: !reducedMotion(),
+    // Nothing plays until the map is ready (see the tick at the end). With reduced motion the
+    // record is shown whole and never plays by itself.
+    playing: false,
+    autoplay: !reducedMotion(),
+    autoplayAtMs: null,
+    // The page around the map is shown with the first tick, so the pause starts counting only once
+    // that frame and one more have been drawn: on a slow device the first paint alone can take
+    // longer than the pause.
+    framesBeforePause: 2,
     settled: reducedMotion(),
     minHeightM: 0,
     mark: "rings",
@@ -330,6 +343,9 @@ async function startPage() {
         isDragging ? "grabbing" : isHovering ? "pointer" : "grab",
     },
   });
+  // The frame ready waits for is the first step of the timeline (or the whole record with reduced
+  // motion), so the globe that appears is exactly the one the opening starts from.
+  map.setTime(reducedMotion() ? null : { clockS: 0, durationS: runS() });
   await Promise.all([
     map.ready,
     document.fonts.load('400 14px "IBM Plex Serif"'),
@@ -559,6 +575,7 @@ async function startPage() {
   };
 
   function setTimeline(share) {
+    ui.autoplay = false;
     ui.clockS = share * runS();
     ui.settled = share >= 1;
     ui.playing = false;
@@ -566,6 +583,7 @@ async function startPage() {
   }
 
   function togglePlay() {
+    ui.autoplay = false;
     if (!ui.playing && ui.settled) {
       ui.clockS = 0;
       ui.settled = false;
@@ -723,6 +741,7 @@ async function startPage() {
   /** Bring a highlighted ring into view, clearing whatever would hide it, and open its note. */
   function showHighlight(key) {
     const { index } = highlights[key];
+    ui.autoplay = false;
     ui.settled = true;
     ui.playing = false;
     ui.showHighlights = true;
@@ -1019,8 +1038,23 @@ async function startPage() {
 
   let lastMs = null;
   const tick = (nowMs) => {
+    // The opening starts here and only here: the first tick runs after map.ready, which means the
+    // start view is fully drawn. Once the page around it is on screen too, it stands still for
+    // AUTOPLAY_PAUSE_MS, counted on animation frames, and plays from the first step. Any timeline
+    // control used before that cancels it.
+    if (ui.autoplay && ui.framesBeforePause > 0) {
+      ui.framesBeforePause -= 1;
+    } else if (ui.autoplay) {
+      ui.autoplayAtMs ??= nowMs + AUTOPLAY_PAUSE_MS;
+      if (nowMs >= ui.autoplayAtMs) {
+        ui.autoplay = false;
+        ui.playing = true;
+        lastMs = nowMs;
+        draw();
+      }
+    }
     if (ui.playing) {
-      ui.clockS += lastMs === null ? 0 : (nowMs - lastMs) / 1000;
+      ui.clockS += lastMs === null ? 0 : Math.min(MAX_STEP_S, (nowMs - lastMs) / 1000);
       if (ui.clockS >= runS() + SETTLE_S) {
         ui.playing = false;
         ui.settled = true;
