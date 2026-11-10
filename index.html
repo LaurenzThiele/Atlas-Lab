@@ -6,277 +6,482 @@
     <title>AtlasLab by Laurenz</title>
     <meta
       name="description"
-      content="Maps of the whole world from open data. Every map here is open: the code, the data and the method are on GitHub. Take one and make it your own."
+      content="Interactive maps made from free open data. All code and data are free on GitHub, so you can take any map and make it your own."
     />
-    <meta name="theme-color" content="#F4F1EA" />
+    <meta name="theme-color" content="#0F141A" />
+    <meta name="color-scheme" content="dark" />
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32" />
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <link rel="preload" href="fonts/SpaceGrotesk-Bold.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="fonts/Inter-Medium.woff2" as="font" type="font/woff2" crossorigin />
 
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Atlas Lab" />
+    <meta property="og:site_name" content="AtlasLab" />
     <meta property="og:title" content="AtlasLab by Laurenz" />
     <meta
       property="og:description"
-      content="Every map here is open: the code, the data and the method are on GitHub. Take one and make it your own."
+      content="Let's create awesome maps together. Interactive maps from free open data, with all code on GitHub."
     />
     <meta property="og:url" content="https://laurenzthiele.github.io/Atlas-Lab/" />
     <meta property="og:image" content="https://laurenzthiele.github.io/Atlas-Lab/og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Atlas Lab: maps of the whole world from open data" />
+    <meta property="og:image:alt" content="AtlasLab by Laurenz. Let's create awesome maps together" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="AtlasLab by Laurenz" />
     <meta
       name="twitter:description"
-      content="Every map here is open: the code, the data and the method are on GitHub. Take one and make it your own."
+      content="Let's create awesome maps together. Interactive maps from free open data, with all code on GitHub."
     />
     <meta name="twitter:image" content="https://laurenzthiele.github.io/Atlas-Lab/og.png" />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Space+Grotesk:wght@700&display=swap"
-    />
-
     <style>
+      @font-face {
+        font-family: "Space Grotesk";
+        font-weight: 700;
+        font-style: normal;
+        font-display: swap;
+        src: url("fonts/SpaceGrotesk-Bold.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Inter";
+        font-weight: 500;
+        font-style: normal;
+        font-display: swap;
+        src: url("fonts/Inter-Medium.woff2") format("woff2");
+      }
+
       :root {
-        --paper: #f4f1ea;
         --ink: #0f141a;
-        --slate: #8a94a3;
-        --blue: #1f5fa8;
+        --paper: #f4f1ea;
+        --soft: #c9ced6;
+        --amber: #ffb000;
+        --surface: #18202a;
+        --surface-hover: #1f2935;
         --display: "Space Grotesk", system-ui, sans-serif;
         --text: "Inter", system-ui, sans-serif;
+
+        /* Motion. GSAP's power3.out as a CSS curve: quick to start, long soft landing. */
+        --ease-out: cubic-bezier(0.215, 0.61, 0.355, 1);
+        --enter: 280ms;
+        --enter-slow: 320ms;
+        --leave: 180ms;
+        --stagger: 40ms;
+
+        /* Sizes that change on phones. */
+        --mark: 96px;
+        --mark-gap: 48px;
+        --wordmark: 72px;
+        --byline: 24px;
+        --byline-top: 85px;
+        --rule-w: 78px;
+        --rule-h: 4px;
+        --rule-gap: 40px;
+        --slogan: 30px;
+        --slogan-gap: 32px;
+        --intro: 18px;
+        --head-top: 96px;
+        --head-bottom: 96px;
+        --side: 24px;
+        --grid-gap: 32px;
+        --card-pad: 24px;
+        --card-mark-gap: 22px;
+        --card-title: 24px;
+        --card-line: 16px;
       }
+      @media (max-width: 639px) {
+        :root {
+          --mark: 56px;
+          --mark-gap: 28px;
+          --wordmark: 42px;
+          --byline: 14px;
+          --byline-top: 50px;
+          --rule-w: 46px;
+          --rule-h: 3px;
+          --rule-gap: 24px;
+          --slogan: 20px;
+          --slogan-gap: 19px;
+          --intro: 16px;
+          --head-top: 64px;
+          --head-bottom: 56px;
+          --side: 16px;
+          --grid-gap: 20px;
+          --card-pad: 18px;
+          --card-mark-gap: 16px;
+          --card-title: 20px;
+          --card-line: 15px;
+        }
+      }
+
       *,
       *::before,
       *::after {
         box-sizing: border-box;
       }
       html {
-        background: var(--paper);
-        color: var(--ink);
+        background: var(--ink);
+        color: var(--paper);
         font-family: var(--text);
+        font-weight: 500;
         font-variant-ligatures: none;
         -webkit-text-size-adjust: 100%;
       }
       body {
         margin: 0;
       }
-      .wrap {
-        max-width: 1120px;
-        margin: 0 auto;
-        padding-left: 24px;
-        padding-right: 24px;
+      h1,
+      h2,
+      p,
+      ul {
+        margin: 0;
       }
 
-      /* Header */
-      header {
-        padding-top: 56px;
+      /* The page: content above, the globe clipped in the bottom right corner behind it. */
+      .page {
+        position: relative;
+        min-height: 100vh;
+        overflow: hidden;
       }
-      /* The byline sits under the wordmark, its right edge on the last letter, as on the banner. */
-      .brand {
-        display: inline-flex;
+      .globe {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        width: 1000px;
+        height: 760px;
+        z-index: 0;
+        pointer-events: none;
+      }
+      .wrap {
+        position: relative;
+        z-index: 1;
+        max-width: 1120px;
+        margin-left: auto;
+        margin-right: auto;
+        padding-left: var(--side);
+        padding-right: var(--side);
+      }
+
+      /* Header: lockup, Amber rule, slogan, intro, all centred like the banner. */
+      .hero {
+        display: flex;
         flex-direction: column;
-        align-items: flex-end;
+        align-items: center;
+        text-align: center;
+        padding-top: var(--head-top);
+        padding-bottom: var(--head-bottom);
       }
       .lockup {
+        position: relative;
         display: flex;
         align-items: center;
-        gap: 24px;
+        gap: var(--mark-gap);
+        height: var(--mark);
+        font-family: var(--display);
+        font-weight: 700;
       }
       .lockup svg {
         display: block;
-        width: 48px;
-        height: 48px;
+        width: var(--mark);
+        height: var(--mark);
         flex: none;
       }
       .wordmark {
-        margin: 0;
-        font-family: var(--display);
-        font-weight: 700;
-        font-size: 28px;
+        font-size: var(--wordmark);
         line-height: 1;
         letter-spacing: 0.12em;
-        margin-right: -0.12em; /* drop the spacing after the last letter so the edges line up */
+        margin-right: -0.12em; /* drop the spacing after the last letter: edges line up */
+        color: var(--paper);
+        white-space: nowrap;
       }
       .byline {
-        margin: 8px 0 0;
-        font-family: var(--display);
-        font-weight: 700;
-        font-size: 13px;
+        position: absolute;
+        top: var(--byline-top);
+        right: 0;
+        font-size: var(--byline);
         line-height: 1;
         letter-spacing: 0.32em;
         margin-right: -0.32em;
-        color: var(--slate);
+        color: var(--amber);
+        white-space: nowrap;
       }
-      .tagline {
-        margin: 48px 0 0;
+      .hero-rule {
+        display: block;
+        width: var(--rule-w);
+        height: var(--rule-h);
+        margin-top: var(--rule-gap);
+        background: var(--amber);
+      }
+      .slogan {
+        margin-top: var(--slogan-gap);
         font-family: var(--display);
         font-weight: 700;
-        font-size: 40px;
-        line-height: 1.15;
+        font-size: var(--slogan);
+        line-height: 1.2;
+        letter-spacing: 0.02em;
+        text-wrap: balance;
       }
       .intro {
-        margin: 16px 0 0;
-        max-width: 40em;
-        font-size: 18px;
+        margin-top: 16px;
+        max-width: 560px;
+        font-size: var(--intro);
         line-height: 1.5;
-        color: rgb(15 20 26 / 0.8);
-      }
-      .rule {
-        margin: 40px 0 0;
-        border: 0;
-        border-top: 1px solid var(--slate);
+        color: var(--soft);
+        text-wrap: balance;
       }
 
-      /* Cards */
-      main {
-        padding-top: 48px;
-        padding-bottom: 72px;
-      }
+      /* Cards. Each card spans four rows of a shared subgrid, so the rule, the titles and the
+         lines start at the same height across a row, even when one title runs to two lines. */
       .grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-        gap: 32px;
-        margin: 0;
+        column-gap: var(--grid-gap);
+        row-gap: var(--grid-gap);
         padding: 0;
         list-style: none;
       }
-      .card {
-        display: block;
-        color: var(--ink);
-        text-decoration: none;
+      .cell {
+        display: grid;
+        grid-row: span 4;
+        grid-template-rows: subgrid;
+        row-gap: 0;
       }
-      .card img {
+      .card {
+        display: grid;
+        grid-row: span 4;
+        grid-template-rows: subgrid;
+        row-gap: 0;
+        border-radius: 12px;
+        overflow: hidden;
+        background: var(--surface);
+        color: var(--paper);
+        text-decoration: none;
+        -webkit-tap-highlight-color: transparent;
+        transition: background-color var(--leave) var(--ease-out);
+      }
+      .thumb {
+        display: block;
+        overflow: hidden;
+        aspect-ratio: 16 / 10;
+        background: var(--surface);
+      }
+      .thumb img {
         display: block;
         width: 100%;
-        height: auto;
-        aspect-ratio: 16 / 10;
+        height: 100%;
         object-fit: cover;
-        border: 1px solid var(--ink);
-        background: var(--paper);
+        transform: scale(1);
+        transform-origin: 50% 50%;
+        transition: transform var(--leave) var(--ease-out);
       }
-      .card h2 {
-        margin: 16px 0 0;
+      .mark {
+        display: block;
+        width: 32px;
+        height: 3px;
+        margin: var(--card-mark-gap) var(--card-pad) 0;
+        background: var(--amber);
+        transform-origin: 0 50%;
+        transition: transform var(--leave) var(--ease-out);
+      }
+      .title {
+        margin: 12px var(--card-pad) 0;
         font-family: var(--display);
         font-weight: 700;
-        font-size: 22px;
-        line-height: 1.2;
+        font-size: var(--card-title);
+        line-height: 1.25;
+        transition: color var(--leave) var(--ease-out);
       }
-      .card p {
-        margin: 8px 0 0;
-        font-size: 16px;
+      .line {
+        margin: 8px var(--card-pad) 0;
+        padding-bottom: var(--card-pad);
+        font-size: var(--card-line);
         line-height: 1.5;
-        color: rgb(15 20 26 / 0.75);
+        color: var(--soft);
       }
-      .card:hover h2,
-      .card:focus-visible h2 {
-        color: var(--blue);
-        text-decoration: underline;
-        text-decoration-thickness: 2px;
-        text-underline-offset: 3px;
-      }
+
+      /* Hover and keyboard focus: one calm motion, staged. The surface lightens first, the Amber
+         rule draws out, the title turns Amber, and the picture eases in slowest of all. Leaving is
+         quicker and all at once, so the card settles without lag. Only transform and colour move. */
       .card:focus {
         outline: none;
       }
       .card:focus-visible {
-        outline: 2px solid var(--blue);
+        outline: 2px solid var(--amber);
         outline-offset: 4px;
       }
-      .empty {
-        margin: 0;
-        font-size: 16px;
-        line-height: 1.5;
+      @media (hover: hover) {
+        .card:hover {
+          background: var(--surface-hover);
+          transition: background-color var(--enter) var(--ease-out);
+        }
+        .card:hover .thumb img {
+          transform: scale(1.035);
+          transition: transform var(--enter-slow) var(--ease-out);
+        }
+        .card:hover .mark {
+          transform: scaleX(1.75);
+          transition: transform var(--enter) var(--ease-out) var(--stagger);
+        }
+        .card:hover .title {
+          color: var(--amber);
+          transition: color var(--enter) var(--ease-out) calc(var(--stagger) * 2);
+        }
+      }
+      .card:focus-visible {
+        background: var(--surface-hover);
+        transition: background-color var(--enter) var(--ease-out);
+      }
+      .card:focus-visible .thumb img {
+        transform: scale(1.035);
+        transition: transform var(--enter-slow) var(--ease-out);
+      }
+      .card:focus-visible .mark {
+        transform: scaleX(1.75);
+        transition: transform var(--enter) var(--ease-out) var(--stagger);
+      }
+      .card:focus-visible .title {
+        color: var(--amber);
+        transition: color var(--enter) var(--ease-out) calc(var(--stagger) * 2);
+      }
+      /* Touch: the press answers at once, with colour only (no sticky hover after the tap). */
+      .card:active {
+        background: var(--surface-hover);
+        transition-duration: 0ms;
+      }
+      .card:active .title {
+        color: var(--amber);
+        transition: none;
       }
 
-      /* Footer */
-      footer {
+      .empty {
+        font-size: 16px;
+        line-height: 1.5;
+        color: var(--soft);
+      }
+
+      /* Footer: licence on the left, the three links on the right. */
+      .foot {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px 32px;
+        padding-top: 72px;
         padding-bottom: 48px;
         font-size: 14px;
         line-height: 1.5;
-        color: rgb(15 20 26 / 0.75);
+        color: var(--soft);
       }
-      .foot {
-        border-top: 1px solid var(--slate);
-        padding-top: 24px;
+      .links {
+        display: flex;
+        gap: 20px;
+        padding: 0;
+        list-style: none;
       }
-      footer p {
-        margin: 0;
+      .links a {
+        display: block;
+        color: rgb(244 241 234 / 0.85);
+        transition: color var(--leave) var(--ease-out);
       }
-      footer p + p {
-        margin-top: 4px;
+      .links a:hover,
+      .links a:focus-visible {
+        color: var(--amber);
+        transition: color var(--enter) var(--ease-out);
       }
-      footer a {
-        color: var(--blue);
+      .links a:focus {
+        outline: none;
       }
-      footer a:hover {
-        text-decoration-thickness: 2px;
+      .links a:focus-visible {
+        outline: 2px solid var(--amber);
+        outline-offset: 4px;
       }
-      footer a:focus-visible {
-        outline: 2px solid var(--blue);
-        outline-offset: 2px;
+      .links svg {
+        display: block;
+        width: 24px;
+        height: 24px;
+        fill: currentColor;
+      }
+      @media (max-width: 639px) {
+        .foot {
+          padding-top: 56px;
+          padding-bottom: 40px;
+        }
+        .globe {
+          width: 520px;
+          height: 395px;
+        }
       }
 
-      @media (max-width: 600px) {
-        .wrap {
-          padding-left: 16px;
-          padding-right: 16px;
-        }
-        header {
-          padding-top: 40px;
-        }
-        .tagline {
-          font-size: 28px;
-        }
-        .grid {
-          grid-template-columns: 1fr;
+      /* Reduced motion: no scaling or drawing out, only the colours change. */
+      @media (prefers-reduced-motion: reduce) {
+        .card:hover .thumb img,
+        .card:focus-visible .thumb img,
+        .card:hover .mark,
+        .card:focus-visible .mark {
+          transform: none;
         }
       }
     </style>
   </head>
   <body>
-    <header class="wrap">
-      <div class="brand">
-        <div class="lockup">
-          <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><circle cx="500" cy="500" r="490" fill="#0F141A"/><circle cx="500" cy="500" r="400" fill="none" stroke="#F4F1EA" stroke-width="70"/><ellipse cx="500" cy="500" rx="180" ry="365" fill="none" stroke="#F4F1EA" stroke-width="44"/><line x1="135" y1="500" x2="865" y2="500" stroke="#F4F1EA" stroke-width="44"/><circle cx="680" cy="500" r="80" fill="#FFB000" stroke="#0F141A" stroke-width="24"/></svg>
-          <p class="wordmark">ATLAS LAB</p>
-        </div>
-        <p class="byline">BY LAURENZ</p>
-      </div>
-      <h1 class="tagline">Maps of the whole world from open data</h1>
-      <p class="intro">
-        Every map here is open: the code, the data and the method are on GitHub. Take one and make
-        it your own.
-      </p>
-      <hr class="rule" />
-    </header>
+    <div class="page">
+      <svg class="globe" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 760" aria-hidden="true"><path fill="none" stroke="#8A94A3" vector-effect="non-scaling-stroke" stroke-width="1.5" stroke-opacity="0.28" d="M1000 761.4L993.8 717.2L986.8 673.5L979 630.3L970.4 588L961.1 546.7L951 506.7L939 463.3L927.7 426.5L915.9 391.5L902 354.6L889.3 324L876.2 295.8L862.8 270L849.2 246.8L835.5 226.3L828.6 217.1L820 206.6M1002 313.2L978.8 294.2L959.1 279.4L935.1 263L914.8 250.5L890.3 236.8L865.6 224.7L840.7 214.2L820 206.6M1003 247.1L982 239.7L960.8 233L934.1 225.6L912.5 220.5L890.9 216.1L863.7 211.5L841.8 208.7L820 206.6M1003 211.8L982.7 208.4L956.9 205.1L936.1 203.4L915.2 202.3L888.9 202L867.8 202.6L841.2 204.4L820 206.6M1001 186.9L980.4 183.1L966.5 181.5L955.9 180.7L934.4 180.6L912.7 182.1L890.7 185.3L868.5 190.2L853.6 194.5L842.4 198.1L820 206.6M869.8 162L864.4 162.4L857.8 164.4L852.2 167.5L845.4 172.8L839.7 178.5L832.8 186.9L825.8 196.9L820 206.6M742.7 164.7L752.4 164.4L760.5 165.5L770.5 168.4L780.6 173.1L790.8 179.4L801 187.5L811.4 197.2L820 206.6M575 208.7L589.4 203.2L604.1 198.4L619 194.4L634.2 191.1L649.6 188.5L665.2 186.7L680.9 185.6L692.9 185.3L709 185.5L725.2 186.5L741.5 188.3L757.9 190.7L774.4 194L786.8 196.9L803.4 201.4L820 206.6M264.7 481.8L275.1 464.4L286.2 447.4L298 430.9L310.4 414.8L320 403.1L333.5 387.8L347.5 373.1L362.2 358.8L377.3 345.2L389.1 335.3L405.2 322.5L421.8 310.4L438.9 298.9L456.5 288L474.5 277.7L492.9 268L511.7 259L526.1 252.7L545.6 244.8L565.4 237.6L585.5 231.1L605.9 225.3L626.6 220.2L647.4 215.9L668.6 212.2L689.8 209.2L711.3 207L732.9 205.4L754.6 204.6L776.3 204.6L798.2 205.2L820 206.6M222.5 759.5L228.1 733.5L234.9 707.7L242.8 682L251.8 656.5L261.8 631.3L272.9 606.5L285.1 582L298.3 557.9L309.5 538.9L324.5 515.7L340.4 493L357.2 471L374.8 449.5L393.4 428.7L412.7 408.6L432.8 389.2L453.7 370.7L475.2 352.9L497.5 336L520.3 320L543.7 304.9L567.6 290.8L587.1 280.1L611.8 267.7L637 256.3L662.5 246L688.3 236.7L714.3 228.5L740.6 221.3L767 215.3L793.4 210.4L820 206.6M418.9 759.1L430.3 716L438.4 689.4L445.4 668.1L452.9 647.1L462.9 621.1L473.5 595.4L482.5 575.1L494.4 550.1L504.3 530.5L525.2 492.2L536.2 473.6L550.5 451L565.3 429L577.4 411.9L589.9 395.3L605.9 375.2L619 359.7L632.3 344.8L645.8 330.4L659.6 316.6L673.5 303.3L691.2 287.6L705.6 275.8L723.7 261.9L738.3 251.5L753 241.8L771.5 230.6L786.4 222.4L805.1 213.2L820 206.6M699.4 761.8L703.6 717.4L708.4 673.5L713.7 630.2L719.6 587.7L725.9 546.2L732.7 506L739.9 467.2L748.5 425.5L756.5 390.4L764.8 357.3L773.4 326.3L782.2 297.6L791.2 271.4L800.3 247.8L809.6 226.8L820 206.6M279.9 456.6L275.9 463.7L272.6 470.8L268.3 483.4L266.1 496.1L265.7 503.3L266.1 510.5L267.1 517.8L268.8 525L271.1 532.2L274.2 539.4L277.9 546.5L282.2 553.5L291.4 565.7L297.5 572.6L304.3 579.4L317.7 591L335.2 604L355.2 616.4L374.5 626.8L398.5 638.1L421.3 647.5L449.1 657.6L478.8 666.9L506.1 674.4L538.7 682.2L568.4 688.3L599 693.7L635 699L671.9 703.4L709.5 706.8L742.9 708.9L781.3 710.4L820 710.9L858.7 710.4L897.1 708.9L930.5 706.8L968.1 703.4L1000.4 699.6M589.8 202.8L569.6 211.5L553.2 219.9L538.8 228.9L525.4 239.3L520.3 244.1L514.8 250.1L510.9 255.1L507.6 260.2L504.9 265.3L502.7 270.5L501 276.7L500.2 281.9L500 287.1L500.6 293.4L501.8 298.6L503.9 304.9L506.4 310L510.2 316.1L518.4 326.1L528.8 335.8L542.9 346L557.9 354.9L576.7 364L595.7 371.6L618.6 379.3L641.1 385.5L667.3 391.4L692.4 396L721.1 400.1L750.7 403.1L781 405.1L811.6 405.9L839.5 405.8L870.1 404.5L897.4 402.4L926.8 399.1L952.7 395.2L977.6 390.4L1003.5 384.3"/><circle fill="none" stroke="#8A94A3" vector-effect="non-scaling-stroke" stroke-width="2" stroke-opacity="0.4" cx="820" cy="800" r="640"/></svg>
+      <header class="hero wrap">
+        <h1 class="lockup" aria-label="AtlasLab by Laurenz">
+          <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><circle cx="500" cy="500" r="416.25" fill="none" stroke="#F4F1EA" stroke-width="67.5"/><ellipse cx="500" cy="500" rx="189.0" ry="382.5" fill="none" stroke="#F4F1EA" stroke-width="40.5"/><line x1="117.5" y1="500" x2="882.5" y2="500" stroke="#F4F1EA" stroke-width="40.5"/><circle cx="689.0" cy="500" r="76.5" fill="#FFB000" stroke="#0F141A" stroke-width="22.5"/></svg>
+          <span class="wordmark" aria-hidden="true">ATLAS LAB</span>
+          <span class="byline" aria-hidden="true">BY LAURENZ</span>
+        </h1>
+        <span class="hero-rule" aria-hidden="true"></span>
+        <p class="slogan">Let’s create awesome maps together</p>
+        <p class="intro">
+          All code and data are free on GitHub, so you can take any map and make it your own.
+        </p>
+      </header>
 
-    <main class="wrap">
-      <ul class="grid">
-        <li>
-          <a class="card" href="./tsunami-ripples/">
-            <img src="thumbs/tsunami-ripples.webp" width="800" height="500" loading="lazy" alt="Every tsunami on record" />
-            <h2>Every tsunami on record</h2>
-            <p>29,340 tsunami records since the year 684, sized by wave height.</p>
+      <main class="wrap">
+        <ul class="grid">
+        <li class="cell">
+          <a class="card" href="./tsunami-ripples/" aria-labelledby="t-tsunami-ripples" aria-describedby="d-tsunami-ripples">
+            <span class="thumb"><img src="thumbs/tsunami-ripples.webp" width="800" height="500" loading="lazy" decoding="async" alt="" /></span>
+            <span class="mark" aria-hidden="true"></span>
+            <h2 class="title" id="t-tsunami-ripples">Every tsunami on record</h2>
+            <p class="line" id="d-tsunami-ripples">29,340 tsunami records since the year 684, sized by wave height.</p>
           </a>
         </li>
-        <li>
-          <a class="card" href="./florence-rain-1966/">
-            <img src="thumbs/florence-rain-1966.webp" width="800" height="500" loading="lazy" alt="The rain that drowned Florence" />
-            <h2>The rain that drowned Florence</h2>
-            <p>The 4,600 km² of hills whose rain all drains under Ponte Vecchio, the basin that flooded Florence on 4 November 1966, as a 3D relief map you can tilt and trace.</p>
+        <li class="cell">
+          <a class="card" href="./florence-rain-1966/" aria-labelledby="t-florence-rain-1966" aria-describedby="d-florence-rain-1966">
+            <span class="thumb"><img src="thumbs/florence-rain-1966.webp" width="800" height="500" loading="lazy" decoding="async" alt="" /></span>
+            <span class="mark" aria-hidden="true"></span>
+            <h2 class="title" id="t-florence-rain-1966">The rain that drowned Florence</h2>
+            <p class="line" id="d-florence-rain-1966">The 4,600 km² of hills whose rain all drains under Ponte Vecchio, the basin that flooded Florence on 4 November 1966, as a 3D relief map you can tilt and trace.</p>
           </a>
         </li>
       </ul>
-    </main>
+      </main>
 
-    <footer class="wrap">
-      <div class="foot">
-        <p>Code MIT. Data under each source's licence, listed in each map's README.</p>
-        <p><a href="https://github.com/LaurenzThiele/Atlas-Lab">Code and data on GitHub</a></p>
-      </div>
-    </footer>
+      <footer class="wrap">
+        <div class="foot">
+          <p>Code MIT. Data under each source's licence, listed in each map's README.</p>
+          <ul class="links">
+            <li>
+              <a href="https://github.com/LaurenzThiele/Atlas-Lab" aria-label="GitHub"
+                ><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" /></svg
+              ></a>
+            </li>
+            <li>
+              <a href="https://www.instagram.com/atlaslab_maps/" aria-label="Instagram"
+                ><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.0301.084c-1.2768.0602-2.1487.264-2.911.5634-.7888.3075-1.4575.72-2.1228 1.3877-.6652.6677-1.075 1.3368-1.3802 2.127-.2954.7638-.4956 1.6365-.552 2.914-.0564 1.2775-.0689 1.6882-.0626 4.947.0062 3.2586.0206 3.6671.0825 4.9473.061 1.2765.264 2.1482.5635 2.9107.308.7889.72 1.4573 1.388 2.1228.6679.6655 1.3365 1.0743 2.1285 1.38.7632.295 1.6361.4961 2.9134.552 1.2773.056 1.6884.069 4.9462.0627 3.2578-.0062 3.668-.0207 4.9478-.0814 1.28-.0607 2.147-.2652 2.9098-.5633.7889-.3086 1.4578-.72 2.1228-1.3881.665-.6682 1.0745-1.3378 1.3795-2.1284.2957-.7632.4966-1.636.552-2.9124.056-1.2809.0692-1.6898.063-4.948-.0063-3.2583-.021-3.6668-.0817-4.9465-.0607-1.2797-.264-2.1487-.5633-2.9117-.3084-.7889-.72-1.4568-1.3876-2.1228C21.2982 1.33 20.628.9208 19.8378.6165 19.074.321 18.2017.1197 16.9244.0645 15.6471.0093 15.236-.005 11.977.0014 8.718.0076 8.31.0215 7.0301.0839m.1402 21.6932c-1.17-.0509-1.8053-.2453-2.2287-.408-.5606-.216-.96-.4771-1.3819-.895-.422-.4178-.6811-.8186-.9-1.378-.1644-.4234-.3624-1.058-.4171-2.228-.0595-1.2645-.072-1.6442-.079-4.848-.007-3.2037.0053-3.583.0607-4.848.05-1.169.2456-1.805.408-2.2282.216-.5613.4762-.96.895-1.3816.4188-.4217.8184-.6814 1.3783-.9003.423-.1651 1.0575-.3614 2.227-.4171 1.2655-.06 1.6447-.072 4.848-.079 3.2033-.007 3.5835.005 4.8495.0608 1.169.0508 1.8053.2445 2.228.408.5608.216.96.4754 1.3816.895.4217.4194.6816.8176.9005 1.3787.1653.4217.3617 1.056.4169 2.2263.0602 1.2655.0739 1.645.0796 4.848.0058 3.203-.0055 3.5834-.061 4.848-.051 1.17-.245 1.8055-.408 2.2294-.216.5604-.4763.96-.8954 1.3814-.419.4215-.8181.6811-1.3783.9-.4224.1649-1.0577.3617-2.2262.4174-1.2656.0595-1.6448.072-4.8493.079-3.2045.007-3.5825-.006-4.848-.0608M16.953 5.5864A1.44 1.44 0 1 0 18.39 4.144a1.44 1.44 0 0 0-1.437 1.4424M5.8385 12.012c.0067 3.4032 2.7706 6.1557 6.173 6.1493 3.4026-.0065 6.157-2.7701 6.1506-6.1733-.0065-3.4032-2.771-6.1565-6.174-6.1498-3.403.0067-6.156 2.771-6.1496 6.1738M8 12.0077a4 4 0 1 1 4.008 3.9921A3.9996 3.9996 0 0 1 8 12.0077" /></svg
+              ></a>
+            </li>
+            <li>
+              <a href="https://www.youtube.com/@atlaslab_maps" aria-label="YouTube"
+                ><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" /></svg
+              ></a>
+            </li>
+          </ul>
+        </div>
+      </footer>
+    </div>
   </body>
 </html>
