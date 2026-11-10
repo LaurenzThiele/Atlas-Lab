@@ -1,0 +1,1031 @@
+/* The look of a printed atlas page: solid paper, thin rules, words instead of widgets. I keep every
+   colour here as a named role, so my UI rules can be checked against one short list. */
+:root {
+  --background: #0f1b2d;
+  --paper: #132134;
+  --ink: #f1eadb;
+  --quiet: #9fb1c2;
+  --rule: rgb(241 234 219 / 25%);
+  --control-rule: rgb(241 234 219 / 40%);
+  --group-rule: rgb(241 234 219 / 60%);
+  --highlight: #e8573f;
+  --foam: #cfe6ee;
+  --display: "Shippori Mincho B1", serif;
+  --text: "IBM Plex Serif", serif;
+  --readout: "IBM Plex Mono", monospace;
+  --sheet-width: 340px;
+  --band-height: 112px;
+  --sheet-closed: 0px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: var(--background);
+  color: var(--ink);
+  font-family: var(--text);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* The map area: everything left of the sheet and above the timeline band. */
+#map,
+#texture,
+#vignette,
+#labels {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: var(--sheet-width);
+  bottom: calc(var(--band-height) + var(--sheet-closed));
+}
+
+/* Texture sits over the map and under the controls, and never catches a click. */
+#texture,
+#vignette {
+  pointer-events: none;
+}
+
+#texture {
+  opacity: 0.06;
+  background-repeat: repeat;
+}
+
+/* A vignette in the background colour only dims what lies on top of the background, so the indigo
+   itself stays exact and the frame gains no new colour. */
+#vignette {
+  background: radial-gradient(ellipse at center, rgb(15 27 45 / 0%) 55%, rgb(15 27 45 / 15%) 100%);
+}
+
+/* With the sheet folded, the map takes the full width. */
+body.sheet-folded {
+  --sheet-width: 0px;
+}
+
+#labels {
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+#labels span {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+button {
+  padding: 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+svg path {
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1.4;
+  stroke-linecap: square;
+}
+
+a,
+.text-link {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+/* The same focus ring on every control, as on every Atlas Lab map. */
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* A mouse click focuses a button too, but the ring is only for the keyboard. */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.quiet {
+  color: var(--quiet);
+}
+
+/* ---------- Title and lede: set straight on the map, like a printed map title. ---------- */
+#title {
+  position: fixed;
+  z-index: 2;
+  top: 32px;
+  left: 40px;
+  width: 440px;
+  pointer-events: none;
+}
+
+/* The one wash I allow behind text on the map. Zoomed in, a bright coast can sit right
+   behind the title, so the background colour lies under the whole block at 85 %, always. It reaches
+   40 px past the text and fades to nothing over those 40 px, so there is no box edge. The two
+   gradients are intersected: one fades the sides, the other the top and bottom. */
+#title::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -40px;
+  background: rgb(15 27 45 / 85%);
+  -webkit-mask-image:
+    linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent),
+    linear-gradient(to bottom, transparent, #000 40px, #000 calc(100% - 40px), transparent);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent),
+    linear-gradient(to bottom, transparent, #000 40px, #000 calc(100% - 40px), transparent);
+  mask-composite: intersect;
+}
+
+h1 {
+  margin: 0 0 12px;
+  font-family: var(--display);
+  font-size: 37px;
+  font-weight: 800;
+  line-height: 1.12;
+}
+
+#lede {
+  max-width: 360px;
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+#lede b {
+  font-weight: 600;
+}
+
+/* ---------- Annotation: a leader line and a note, no card. ---------- */
+#annotation {
+  position: fixed;
+  z-index: 3;
+  top: 0;
+  left: 0;
+  width: 240px;
+  padding: 2px 8px 4px 12px;
+  /* The one soft wash I allow: the map behind a note can be a bright coast, and the note
+     has to stay readable there. It is the background colour, without an edge. */
+  background: rgb(15 27 45 / 86%);
+  border-left: 1px solid var(--ink);
+  font-size: 13.5px;
+  pointer-events: none;
+}
+
+#annotation.pinned {
+  pointer-events: auto;
+}
+
+#annotation h3 {
+  margin: 0 0 3px;
+  font-family: var(--display);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+#annotation p {
+  margin: 0;
+}
+
+#annotation .annotation-source {
+  margin-top: 4px;
+  color: var(--quiet);
+  font-size: 12.5px;
+}
+
+#leader {
+  position: fixed;
+  z-index: 3;
+  top: 0;
+  left: 0;
+  height: 1px;
+  background: var(--ink);
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+
+#feature-dot {
+  position: fixed;
+  z-index: 3;
+  top: 0;
+  left: 0;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* ---------- Hint line ---------- */
+/* The one line of instructions on the map: what a click gives, then the gestures. Always shown. */
+#hint {
+  position: fixed;
+  z-index: 2;
+  left: 40px;
+  bottom: calc(var(--band-height) + var(--sheet-closed) + 16px);
+  max-width: 360px;
+  margin: 0;
+  color: var(--quiet);
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+
+#hint i {
+  color: var(--ink);
+  font-style: normal;
+  /* A verb never breaks across lines, not even at the hyphen in "right-drag". */
+  white-space: nowrap;
+}
+
+.hint-touch {
+  display: none;
+}
+
+/* ---------- Map buttons: one flat strip, square corners. ---------- */
+#map-buttons {
+  position: fixed;
+  z-index: 2;
+  right: calc(var(--sheet-width) + 20px);
+  bottom: calc(var(--band-height) + var(--sheet-closed) + 16px);
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  /* Controls need 3:1 against what is behind them. Washi at 37% is the least that reaches it on
+     the paper and on the map, 38% over the land tint, so the outline uses 40%. */
+  border: 1px solid var(--control-rule);
+}
+
+#map-buttons button {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+}
+
+#map-buttons button + button {
+  border-top: 1px solid var(--control-rule);
+}
+
+#map-buttons button.group-start {
+  border-top: 1px solid var(--group-rule);
+}
+
+#north-arrow path {
+  fill: currentcolor;
+  stroke-width: 0;
+}
+
+#tilt[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* ---------- Timeline band: a ruled axis, like the scale on a printed chart. ---------- */
+#timeline {
+  position: fixed;
+  z-index: 2;
+  left: 0;
+  right: var(--sheet-width);
+  bottom: var(--sheet-closed);
+  display: grid;
+  grid-template-columns: 170px 1fr auto;
+  gap: 28px;
+  align-items: center;
+  height: var(--band-height);
+  padding: 0 40px;
+  background: var(--paper);
+  border-top: 1px solid var(--rule);
+}
+
+/* "312 of 1,124 tsunamis" under the year, small and quiet, the digits in fixed widths so the line
+   does not shiver while the timeline runs. */
+.readout-count {
+  margin: 5px 0 0;
+  color: var(--quiet);
+  font-size: 13px;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.readout-value {
+  display: block;
+  font-family: var(--readout);
+  font-size: 30px;
+  font-weight: 500;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.play-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+#play {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+}
+
+#play-icon path {
+  fill: currentcolor;
+  stroke-width: 0;
+}
+
+#axis {
+  position: relative;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.axis-base {
+  position: absolute;
+  top: 42px;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--ink);
+}
+
+#axis-done {
+  position: absolute;
+  top: 41px;
+  left: 0;
+  height: 3px;
+  background: var(--ink);
+}
+
+#axis-head {
+  position: absolute;
+  top: 30px;
+  width: 2px;
+  height: 24px;
+  margin-left: -1px;
+  background: var(--highlight);
+}
+
+.axis-tick {
+  position: absolute;
+  top: 42px;
+  width: 1px;
+  height: 5px;
+  background: var(--ink);
+}
+
+.axis-tick.end {
+  height: 8px;
+}
+
+/* ui.js measures each label and sets its exact place, so no transform here. */
+.axis-label {
+  position: absolute;
+  color: var(--quiet);
+  /* One line of label is 14 px, the same as the row spacing in ui.js, so rows never touch. */
+  line-height: 14px;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.axis-note {
+  position: absolute;
+  color: var(--quiet);
+  line-height: 14px;
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+/* The timeline's named events. 1958 and 2004 sit close together, so 2004 gets a row of its own. */
+.axis-event {
+  position: absolute;
+  color: var(--highlight);
+  font-size: 11.5px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.axis-event.row-1 {
+  top: 15px;
+}
+
+.axis-event.row-2 {
+  top: 0;
+}
+
+
+.axis-event-line {
+  position: absolute;
+  width: 1px;
+  background: var(--highlight);
+}
+
+.axis-event-line.row-1 {
+  top: 27px;
+  height: 15px;
+}
+
+.axis-event-line.row-2 {
+  top: 12px;
+  height: 30px;
+}
+
+/* ---------- Words as options: the chosen one is underlined and bold. ---------- */
+.words {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+
+.words button {
+  color: var(--quiet);
+}
+
+.words button[aria-pressed="true"] {
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+.speeds {
+  font-size: 13px;
+}
+
+/* ---------- The sheet: one continuous column. ---------- */
+#sheet {
+  position: fixed;
+  z-index: 4;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 340px;
+  /* The same 20 px side padding on every map, so the fold button sits in the same place on all. */
+  padding: 0 20px 24px;
+  overflow-y: auto;
+  background: var(--paper);
+  border-left: 1px solid var(--rule);
+}
+
+body.sheet-folded #sheet {
+  display: none;
+}
+
+/* The sheet's top row: 34 px high, only the fold button at the right. It lines up with the Map info
+   button, which takes its place when the sheet is folded. */
+/* The top row: 44 px, only the fold button at the right. The 32 px button reaches 8 px into the
+   side padding (its right edge 12 px from the sheet's edge), which puts the 18 px icon's right edge
+   on the right edge of the sheet text. */
+.sheet-top {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: 44px;
+  margin: 0 -8px 12px 0;
+}
+
+/* The fold and open icons are one drawing at 18 px. My general rule draws paths at 1.4 px, so I
+   give these back their own 1.5 px stroke and square caps. */
+.sheet-icon path,
+.sheet-icon rect {
+  stroke-width: 1.5;
+  stroke-linecap: square;
+}
+
+/* At rest the icon is ink at 75 % opacity, not a grey. Hover brings it to full ink and draws a
+   1 px rule round the square; the transparent rule at rest keeps the icon from moving. */
+#sheet-fold {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 1px solid transparent;
+  color: var(--ink);
+}
+
+#sheet-fold:hover {
+  border-color: var(--rule);
+}
+
+.sheet-icon {
+  opacity: 0.75;
+}
+
+#sheet-fold:hover .sheet-icon,
+#sheet-open:hover .sheet-icon {
+  opacity: 1;
+}
+
+#sheet-grab {
+  display: none;
+}
+
+/* Built like the map buttons: 34 px high, solid paper, the same 3:1 rule, square corners. The
+   chevron and the sidebar icon say what it brings back; the words say what is in it. */
+#sheet-open {
+  position: fixed;
+  z-index: 4;
+  top: 24px;
+  right: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 12px;
+  background: var(--paper);
+  border: 1px solid var(--control-rule);
+  font-family: var(--text);
+  font-size: 13.5px;
+}
+
+#sheet-open[hidden] {
+  display: none;
+}
+
+.part {
+  padding-bottom: 22px;
+  margin-bottom: 22px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.part:last-child {
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-bottom: 0;
+}
+
+h2 {
+  margin: 0 0 10px;
+  font-family: var(--display);
+  font-size: 17px;
+  font-weight: 800;
+}
+
+h2 small {
+  margin-left: 6px;
+  color: var(--quiet);
+  font-family: var(--text);
+  font-size: 13px;
+  font-style: normal;
+  font-variant: normal;
+  font-weight: 400;
+  text-transform: none;
+}
+
+.key-entry {
+  display: grid;
+  grid-template-columns: 34px 1fr auto;
+  gap: 0 12px;
+  align-items: center;
+  width: 100%;
+  padding: 6px 0;
+  text-align: left;
+}
+
+.key-entry .quiet {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.key-entry[aria-pressed="false"] .sample {
+  opacity: 0.35;
+}
+
+.key-entry[aria-pressed="false"] .key-name {
+  color: var(--quiet);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.sample-foam {
+  fill: none;
+  stroke: var(--foam);
+  stroke-width: 1;
+}
+
+.sample-red {
+  fill: none;
+  stroke: var(--highlight);
+  stroke-width: 1.5;
+}
+
+.ramp {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  margin: 2px 0 8px 46px;
+}
+
+.ramp i {
+  display: block;
+  height: 10px;
+}
+
+.ramp span {
+  margin-top: 3px;
+  color: var(--quiet);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.option-label {
+  margin: 14px 0 4px;
+  color: var(--quiet);
+  font-size: 12.5px;
+}
+
+.slider-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.slider-label output {
+  color: var(--ink);
+  font-size: 13.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The threshold slider: a thin rule with a small marker, drawn by hand. */
+#min-height {
+  display: block;
+  width: 100%;
+  height: 16px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+}
+
+#min-height::-webkit-slider-runnable-track {
+  height: 1px;
+  background: var(--ink);
+}
+
+#min-height::-moz-range-track {
+  height: 1px;
+  background: var(--ink);
+}
+
+#min-height::-webkit-slider-thumb {
+  width: 3px;
+  height: 13px;
+  margin-top: -6px;
+  background: var(--ink);
+  border: 0;
+  border-radius: 0;
+  appearance: none;
+}
+
+#min-height::-moz-range-thumb {
+  width: 3px;
+  height: 13px;
+  background: var(--ink);
+  border: 0;
+  border-radius: 0;
+}
+
+.figure {
+  margin: 0 0 10px;
+  font-size: 14.5px;
+  line-height: 1.4;
+}
+
+.figure b {
+  font-family: var(--readout);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* The crosshair sits at the right end of its line, its 28 px hit area centred on the first line of
+   text: (20.3 px line - 28 px) / 2 pulls it up by about 4 px. */
+.figure:has(.show-on-map) {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.show-on-map {
+  display: grid;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  margin: -4px -7px 0 auto;
+  place-items: center;
+  color: rgb(241 234 219 / 75%);
+}
+
+.show-on-map:hover {
+  color: var(--ink);
+}
+
+/* My general rule draws icon paths at 1.4 px; the crosshair keeps its own 1.3 px stroke. */
+.show-on-map path,
+.show-on-map circle {
+  stroke-width: 1.3;
+  stroke-linecap: butt;
+}
+
+.sources {
+  margin: 0;
+  padding-left: 16px;
+  color: var(--quiet);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.sources li + li {
+  margin-top: 6px;
+}
+
+/* The links show the address without "https://", so they fit on a line; a longer one may still
+   break where it must instead of running out of the sheet. */
+.sources a {
+  color: var(--quiet);
+  overflow-wrap: break-word;
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: 12px 0 0;
+  font-size: 13.5px;
+}
+
+/* ---------- Map button tooltips: a small printed label beside the strip. ---------- */
+#tooltip,
+.tip {
+  position: fixed;
+  z-index: 5;
+  padding: 3px 7px;
+  background: var(--paper);
+  border: 1px solid var(--control-rule);
+  color: var(--ink);
+  font-family: var(--text);
+  font-size: 13px;
+  line-height: 1.3;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* The read note: the same label, wider, and wrapping. */
+.tip-wide {
+  max-width: 260px;
+  white-space: normal;
+}
+
+.info-button {
+  display: inline-grid;
+  width: 22px;
+  height: 22px;
+  margin: -4px 0 -4px 2px;
+  place-items: center;
+  vertical-align: middle;
+  color: var(--quiet);
+}
+
+.info-button circle {
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1.4;
+}
+
+/* ---------- About this map: the notes behind the map, in a native modal dialog. ---------- */
+.notes {
+  width: min(680px, calc(100vw - 32px));
+  max-width: none;
+  max-height: 85vh;
+  padding: 0;
+  overflow-y: auto;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Focus moves to the dialog itself when it opens, so the notes read from the top. The dialog is not
+   a control, so it gets no ring. */
+.notes:focus,
+.notes:focus-visible {
+  outline: none;
+}
+
+.notes::backdrop {
+  background: rgb(15 27 45 / 55%);
+}
+
+.dialog-body {
+  padding: 28px;
+}
+
+.notes h2 {
+  margin: 0 0 16px;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.notes h3 {
+  margin: 22px 0 6px;
+  font-family: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.notes p {
+  margin: 0 0 10px;
+}
+
+.notes .files {
+  margin: 0 0 12px;
+  padding-left: 18px;
+}
+
+.notes .files li {
+  margin: 0 0 6px;
+}
+
+#data-fetched {
+  margin-top: 18px;
+}
+
+.dialog-body {
+  position: relative;
+}
+
+/* Close at the top right: an X in the ink colour, no rule, the usual focus ring. The heading keeps
+   clear of it. */
+.notes-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  color: var(--ink);
+}
+
+.notes h2 {
+  padding-right: 32px;
+}
+
+.notes a {
+  color: inherit;
+}
+
+/* ---------- Phone: the same parts, rearranged. Nothing is hidden. ---------- */
+@media (max-width: 900px) {
+  :root,
+  body.sheet-folded {
+    --sheet-width: 0px;
+    --band-height: 140px;
+    --sheet-closed: 30vh;
+  }
+
+  #title {
+    top: 12px;
+    left: 16px;
+    width: calc(100vw - 32px);
+  }
+
+  h1 {
+    margin-bottom: 4px;
+    font-size: 19px;
+    white-space: nowrap;
+  }
+
+  #lede {
+    max-width: none;
+    font-size: 15px;
+    line-height: 1.35;
+  }
+
+  #hint {
+    left: 16px;
+    max-width: calc(100vw - 90px);
+    bottom: calc(var(--band-height) + var(--sheet-closed) + 10px);
+    /* On a phone the hint lies over the globe, where a bright coast can sit right behind it. The
+       one wash I allow: the background colour, no edge, only behind this line. */
+    padding: 2px 6px;
+    margin-left: -6px;
+    background: rgb(15 27 45 / 86%);
+  }
+
+  .hint-mouse,
+  .play-hint {
+    display: none;
+  }
+
+  .hint-touch {
+    display: inline;
+  }
+
+  #map-buttons {
+    right: 12px;
+    bottom: calc(var(--band-height) + var(--sheet-closed) + 10px);
+  }
+
+  #timeline {
+    grid-template-columns: 1fr auto;
+    gap: 0 16px;
+    align-content: center;
+    padding: 4px 16px;
+  }
+
+  .readout {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 14px;
+  }
+
+  /* The year and Play share the first line; the count takes a line of its own under them. */
+  .readout-count {
+    order: 3;
+    flex-basis: 100%;
+    margin: 0;
+  }
+
+  .readout-value {
+    font-size: 24px;
+  }
+
+  .play-row {
+    margin-top: 0;
+  }
+
+  #axis {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .speeds {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  /* The sheet rises from the bottom: 30% of the height closed, nearly all of it open. */
+  #sheet,
+  body.sheet-folded #sheet {
+    top: auto;
+    left: 0;
+    display: block;
+    width: 100%;
+    height: var(--sheet-height, 30vh);
+    padding: 26px 16px 24px;
+    border-top: 1px solid var(--rule);
+    border-left: 0;
+  }
+
+  .sheet-top,
+  #sheet-open {
+    display: none;
+  }
+
+  #sheet-grab {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: grid;
+    height: 24px;
+    place-items: center;
+    touch-action: none;
+  }
+
+  #sheet-grab span {
+    width: 44px;
+    height: 2px;
+    background: var(--quiet);
+  }
+
+  .notes h2 {
+    font-size: 28px;
+  }
+}

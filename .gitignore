@@ -6,8 +6,6 @@ __pycache__/
 .ruff_cache/
 *.pyc
 *.part*
-site/dist/
-site/node_modules/
 
 florence-rain-1966/maps/layers/terrain/
 florence-rain-1966/maps/layers/terrain_city/
