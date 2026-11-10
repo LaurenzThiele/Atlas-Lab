@@ -75,6 +75,12 @@
       header {
         padding-top: 56px;
       }
+      /* The byline sits under the wordmark, its right edge on the last letter, as on the banner. */
+      .brand {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: flex-end;
+      }
       .lockup {
         display: flex;
         align-items: center;
@@ -93,6 +99,7 @@
         font-size: 28px;
         line-height: 1;
         letter-spacing: 0.12em;
+        margin-right: -0.12em; /* drop the spacing after the last letter so the edges line up */
       }
       .byline {
         margin: 8px 0 0;
@@ -101,6 +108,7 @@
         font-size: 13px;
         line-height: 1;
         letter-spacing: 0.32em;
+        margin-right: -0.32em;
         color: var(--slate);
       }
       .tagline {
@@ -235,11 +243,13 @@
   </head>
   <body>
     <header class="wrap">
-      <div class="lockup">
-        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><circle cx="500" cy="500" r="490" fill="#0F141A"/><circle cx="500" cy="500" r="400" fill="none" stroke="#F4F1EA" stroke-width="70"/><ellipse cx="500" cy="500" rx="180" ry="365" fill="none" stroke="#F4F1EA" stroke-width="44"/><line x1="135" y1="500" x2="865" y2="500" stroke="#F4F1EA" stroke-width="44"/><circle cx="680" cy="500" r="80" fill="#FFB000" stroke="#0F141A" stroke-width="24"/></svg>
-        <p class="wordmark">ATLAS LAB</p>
+      <div class="brand">
+        <div class="lockup">
+          <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><circle cx="500" cy="500" r="490" fill="#0F141A"/><circle cx="500" cy="500" r="400" fill="none" stroke="#F4F1EA" stroke-width="70"/><ellipse cx="500" cy="500" rx="180" ry="365" fill="none" stroke="#F4F1EA" stroke-width="44"/><line x1="135" y1="500" x2="865" y2="500" stroke="#F4F1EA" stroke-width="44"/><circle cx="680" cy="500" r="80" fill="#FFB000" stroke="#0F141A" stroke-width="24"/></svg>
+          <p class="wordmark">ATLAS LAB</p>
+        </div>
+        <p class="byline">BY LAURENZ</p>
       </div>
-      <p class="byline">BY LAURENZ</p>
       <h1 class="tagline">Maps of the whole world from open data</h1>
       <p class="intro">
         Every map here is open: the code, the data and the method are on GitHub. Take one and make
@@ -250,6 +260,13 @@
 
     <main class="wrap">
       <ul class="grid">
+        <li>
+          <a class="card" href="./tsunami-ripples/">
+            <img src="thumbs/tsunami-ripples.webp" width="800" height="500" loading="lazy" alt="Every tsunami on record" />
+            <h2>Every tsunami on record</h2>
+            <p>29,340 tsunami records since the year 684, sized by wave height.</p>
+          </a>
+        </li>
         <li>
           <a class="card" href="./florence-rain-1966/">
             <img src="thumbs/florence-rain-1966.webp" width="800" height="500" loading="lazy" alt="The rain that drowned Florence" />
