@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>The roads of the Roman Empire | Atlas Lab</title>
+    <meta
+      name="description"
+      content="Every known Roman road on an interactive globe, reaching from Britain to Egypt."
+    />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="favicon-32.png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- The stage is the map area. It fills the page in the plain plate view, and makes room for
+           the sheet and the timeline band on the public page. -->
+      <div id="stage">
+        <div id="map" aria-label="Globe showing the road network of the Roman Empire"></div>
+        <div id="degree-labels" aria-hidden="true"></div>
+        <div id="place-labels" aria-hidden="true"></div>
+
+        <div id="cartouche" class="plate-only"><span>Tabvla Viarvm</span> <span>Imperii Romani</span></div>
+
+        <!-- The paper sits above the ink so every screenshot of the plate carries it. -->
+        <canvas id="grain" class="texture" aria-hidden="true"></canvas>
+        <canvas id="foxing" class="texture" aria-hidden="true"></canvas>
+        <div id="vignette" class="texture" aria-hidden="true"></div>
+        <div id="plate-mark" class="texture" aria-hidden="true"></div>
+        <div id="plate-border" class="texture" aria-hidden="true"></div>
+
+        <!-- The plate's own legend and credit: only the plain plate view (?plate=1) shows them. -->
+        <section id="legend" class="panel plate-only" aria-label="Legend">
+          <h2 class="ui-only">Legend</h2>
+          <ul>
+            <li><svg viewBox="0 0 48 10"><line class="key-main" x1="0" y1="5" x2="48" y2="5" /></svg>Main road</li>
+            <li><svg viewBox="0 0 48 10"><line class="key-secondary" x1="0" y1="5" x2="48" y2="5" /></svg>Secondary road</li>
+            <li><svg viewBox="0 0 48 10"><line class="key-pattern" x1="0" y1="5" x2="48" y2="5" /></svg>Certain</li>
+            <li><svg viewBox="0 0 48 10"><line class="key-pattern key-dash" x1="0" y1="5" x2="48" y2="5" /></svg>Conjectured</li>
+            <li><svg viewBox="0 0 48 10"><line class="key-pattern key-dot" x1="0" y1="5" x2="48" y2="5" /></svg>Hypothetical</li>
+            <li class="ui-only"><svg viewBox="0 0 48 10"><line class="key-river" x1="0" y1="5" x2="48" y2="5" /></svg>River</li>
+            <li class="ui-only">
+              <svg viewBox="0 0 48 10">
+                <line class="key-coast" x1="0" y1="2" x2="48" y2="2" />
+                <line class="key-ripple" x1="0" y1="5.5" x2="48" y2="5.5" />
+                <line class="key-ripple-far" x1="0" y1="8.5" x2="48" y2="8.5" />
+              </svg>Coast and water lines
+            </li>
+          </ul>
+        </section>
+        <div id="credit" class="plate-only">Data: Itiner-e (de Soto et al. 2025, CC BY 4.0), Natural Earth</div>
+
+        <!-- Everything below is map furniture for the public page. The plate view never shows it. -->
+        <header id="title-block" class="ui-only">
+          <h1>The roads of the Roman Empire</h1>
+          <p><b id="lede-total"></b> of Roman road, reaching from Britain to Egypt.</p>
+        </header>
+
+        <svg id="leader" class="ui-only" aria-hidden="true">
+          <line />
+          <circle r="5" />
+        </svg>
+        <aside id="annotation" class="ui-only" aria-live="polite" hidden></aside>
+
+        <div id="foot-left" class="ui-only">
+          <!-- The one instruction on the map: what a click does, then the gestures. Always shown. -->
+          <p id="hint">
+            <span class="for-pointer"><i>Click</i> a road to see its name, type, how certain it is and its length. <i>Drag</i> to move, <i>Ctrl + drag</i> or <i>right-drag</i> to tilt and turn, <i>scroll</i> to zoom.</span>
+            <span class="for-touch"><i>Tap</i> a road to see its name, type, how certain it is and its length. <i>Drag</i> to move, <i>two fingers</i> to tilt and turn, <i>pinch</i> to zoom.</span>
+          </p>
+        </div>
+
+        <!-- Top right of the map area: the button that brings the folded sheet back. -->
+        <div id="top-right" class="ui-only">
+          <button id="unfold" type="button" aria-label="Show the sheet">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" aria-hidden="true"><rect x="2" y="3" width="14" height="12"/><rect x="11" y="3" width="5" height="12" fill="currentColor" stroke="none"/><path d="M8 6.5L5.5 9 8 11.5"/></svg>
+            <span>Map info</span>
+          </button>
+        </div>
+
+        <div id="map-buttons" class="ui-only" role="group" aria-label="Map controls">
+          <button id="zoom-in" class="has-tip" type="button" aria-label="Zoom in">
+            <svg width="16" height="16" viewBox="0 0 20 20" class="stroke" aria-hidden="true"><path d="M10 5v10M5 10h10" /></svg>
+          </button>
+          <button id="zoom-out" class="has-tip" type="button" aria-label="Zoom out">
+            <svg width="16" height="16" viewBox="0 0 20 20" class="stroke" aria-hidden="true"><path d="M5 10h10" /></svg>
+          </button>
+          <button id="compass" class="group-start has-tip" type="button" aria-label="Reset north and tilt">
+            <svg width="18" height="18" viewBox="0 0 20 20" class="stroke" aria-hidden="true"><path d="M10 3l3.6 13L10 13.4 6.4 16z" /></svg>
+          </button>
+          <button id="tilt" class="group-start has-tip" type="button" aria-label="Tilt to 3D" aria-pressed="false">3D</button>
+          <button id="home" class="has-tip" type="button" aria-label="Back to the start view">
+            <svg width="16" height="16" viewBox="0 0 20 20" class="stroke" aria-hidden="true"><path d="M5 8V5h3M15 8V5h-3M5 12v3h3M15 12v3h-3" /></svg>
+          </button>
+        </div>
+      </div>
+
+      <section id="timeline" class="ui-only" aria-label="Draw from Rome">
+        <div id="readout">
+          <div id="readout-value" class="readout-face"></div>
+          <p id="readout-drawn"></p>
+          <p id="play-row">
+            <button id="play" type="button" aria-label="Play the draw from Rome">
+              <svg width="12" height="12" viewBox="0 0 20 20" aria-hidden="true"><path id="play-icon" d="M6 4v12l10-6z" /></svg>
+              <span id="play-word">Play</span>
+            </button>
+            <span class="quiet for-pointer-inline">or press Space</span>
+          </p>
+        </div>
+        <div
+          id="axis"
+          role="slider"
+          tabindex="0"
+          aria-label="Network distance from Rome in km"
+          aria-valuemin="0"
+        >
+          <div id="events"></div>
+          <div id="axis-base"></div>
+          <div id="axis-done"></div>
+          <div id="ticks"></div>
+          <div id="playhead"></div>
+        </div>
+        <div id="speeds" role="group" aria-label="Playing speed"></div>
+      </section>
+
+      <aside id="sheet" class="ui-only" aria-label="Map info">
+        <button id="grab" type="button" aria-label="Open or close the map info" aria-expanded="false"><span></span></button>
+        <!-- The sheet's top row holds only the fold button, so it never reads as part of a heading. -->
+        <div id="sheet-top">
+          <button id="fold" type="button" aria-label="Hide the sheet">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" aria-hidden="true"><rect x="2" y="3" width="14" height="12"/><path d="M11 3v12"/><path d="M5.5 6.5L8 9 5.5 11.5"/></svg>
+          </button>
+        </div>
+
+        <section id="key-part" class="part">
+          <h2>Layers <small>click to show or hide</small></h2>
+          <div id="key-roads"></div>
+          <div id="key-water"></div>
+          <!-- The certainty patterns get their own group last, so the water never reads as one. -->
+          <h3>Certainty</h3>
+          <div id="key-certainty"></div>
+        </section>
+
+        <section id="numbers-part" class="part">
+          <h2>In numbers</h2>
+          <div id="figures"></div>
+        </section>
+
+        <section id="sources-part" class="part">
+          <h2>Sources</h2>
+          <!-- Each entry: publisher, title (and year), what it gives here, licence, link. -->
+          <ol id="sources">
+            <li>
+              de Soto, Pažout, Brughmans et al. (Aarhus University, UAB),
+              <i>Itiner-e: Roads of the Roman Empire</i>, static version 2024 (v1.3), published 2025.
+              The roads, their type and certainty, and the road total. CC BY 4.0.
+              <a href="https://doi.org/10.1038/s41597-025-06140-z" rel="noopener">doi:10.1038/s41597-025-06140-z</a>,
+              Zenodo <a href="https://doi.org/10.5281/zenodo.17122148" rel="noopener">10.5281/zenodo.17122148</a>.
+            </li>
+            <li>
+              NASA Space Science Data Coordinated Archive, <i>Earth Fact Sheet</i>.
+              Earth's equatorial radius, for "7.5 times around the Earth". US government work, public domain.
+              <a href="https://nssdc.gsfc.nasa.gov/planetary/factsheet/earthfact.html" rel="noopener">nssdc.gsfc.nasa.gov</a>.
+            </li>
+            <li>
+              Natural Earth, <i>1:10m Physical Vectors</i>: land (v5.1.1, 2022), lakes, and rivers and
+              lake centerlines (v5.0.0, 2021). The land, coast, lakes and rivers.
+              <a href="https://www.naturalearthdata.com/about/terms-of-use/" rel="noopener">Public domain (Natural Earth terms of use)</a>.
+              <a href="https://www.naturalearthdata.com/" rel="noopener">naturalearthdata.com</a>.
+            </li>
+          </ol>
+          <p class="links">
+            <button id="about-toggle" class="text-link" type="button" aria-haspopup="dialog">About this map</button>
+            <button id="downloads-toggle" class="text-link" type="button" aria-haspopup="dialog">Download the data</button>
+          </p>
+        </section>
+      </aside>
+
+      <!-- One tooltip for every button that has one. It repeats the button's aria-label (or its
+           data-tip), so screen readers already hear the words and skip this copy. -->
+      <span id="button-tip" class="ui-only" aria-hidden="true"></span>
+
+      <!-- The layer files the map draws, each under its source's licence. Every source here lets
+           anyone share files made from it, so every layer may be offered. -->
+      <dialog id="downloads" class="ui-only" aria-labelledby="downloads-title" tabindex="-1">
+        <button id="downloads-close" class="has-tip" type="button" aria-label="Close">
+          <svg width="16" height="16" viewBox="0 0 20 20" class="stroke" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15" /></svg>
+        </button>
+        <h2 id="downloads-title">Download the data</h2>
+        <p>The layers this map draws, as I prepared them from the sources below.</p>
+        <h3>Roads</h3>
+        <p>
+          <a href="layers/roads.pmtiles" download>roads.pmtiles</a>: every road piece with its type,
+          certainty and network distance from Rome, plus the certainty chains, as vector tiles.
+          <a href="layers/segments.json" download>segments.json</a>: each of the 14,769 segments with
+          its name, type, certainty, length and bibliography.
+          <a href="layers/draw_curve.json" download>draw_curve.json</a>: km of road drawn at each km
+          from Rome. From Itiner-e (de Soto et al. 2025),
+          <a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener">CC BY 4.0</a>: share
+          them with that credit.
+        </p>
+        <h3>The plate</h3>
+        <p>
+          <a href="layers/plate.pmtiles" download>plate.pmtiles</a>: land, coast, water lines, lakes
+          and rivers, as vector tiles. From Natural Earth,
+          <a href="https://www.naturalearthdata.com/about/terms-of-use/" rel="noopener">public domain</a>.
+        </p>
+        <h3>Raw data</h3>
+        <p>
+          The road network as published:
+          <a href="https://doi.org/10.5281/zenodo.17122148" rel="noopener">Itiner-e on Zenodo</a>.
+          Rebuild every layer with uv run maps/prepare.py (see the README).
+        </p>
+      </dialog>
+
+      <!-- Method and licences. A native modal dialog keeps focus inside it and closes on Escape. -->
+      <dialog id="about" class="ui-only" aria-labelledby="about-title" tabindex="-1">
+        <button id="about-close" class="has-tip" type="button" aria-label="Close">
+          <svg width="16" height="16" viewBox="0 0 20 20" class="stroke" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15" /></svg>
+        </button>
+        <h2 id="about-title">About this map</h2>
+        <p>
+          Each road's distance from Rome is the shortest way there along the network. Road lengths
+          are measured on the WGS84 ellipsoid.
+        </p>
+        <p>
+          Parts of the network with no road link to Rome, such as Britain, are tied in by one
+          straight sea crossing each. A crossing counts toward the distance on the timeline, but it
+          is never drawn and is in no total.
+        </p>
+        <h3>Licences</h3>
+        <p>
+          Itiner-e: Roads of the Roman Empire, static version 2024 (v1.3), is shared under
+          <a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener">CC BY 4.0</a>.
+        </p>
+        <p>
+          Natural Earth land, lakes, and rivers and lake centerlines are
+          <a href="https://www.naturalearthdata.com/about/terms-of-use/" rel="noopener">Public domain (Natural Earth terms of use)</a>.
+        </p>
+        <p>
+          NASA's Earth Fact Sheet is a US government work and in the public domain.
+        </p>
+        <h3>Attribution for Itiner-e (CC BY 4.0)</h3>
+        <p>Itiner-e, de Soto et al. 2025, Scientific Data, doi:10.1038/s41597-025-06140-z</p>
+        <p>
+          Changes: I joined the roads into one network, cut them into short pieces and gave each
+          piece its distance from Rome along the network.
+        </p>
+        <!-- Filled in by ui.js from maps/layers/meta.json, which prepare.py copies from the
+             download record, so the date is never typed by hand. -->
+        <div id="fetched" class="quiet"></div>
+      </dialog>
+    </div>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
