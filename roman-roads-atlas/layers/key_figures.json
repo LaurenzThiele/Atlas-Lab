@@ -1,0 +1,26 @@
+[
+  {
+    "id": "total_road_km",
+    "value": 299171.3,
+    "unit": "km",
+    "display": "299,171 km",
+    "source": "Itiner-e 2024 (de Soto et al. 2025)",
+    "method": "Sum of geodesic lengths (WGS84) of all 14,769 road segments; matches the paper's total (https://doi.org/10.1038/s41597-025-06140-z)"
+  },
+  {
+    "id": "times_around_earth",
+    "value": 7.47,
+    "unit": "times the Equator",
+    "display": "7.5 times around the Earth",
+    "source": "Itiner-e 2024 (de Soto et al. 2025); equatorial radius 6,378.137 km, NASA Earth Fact Sheet (https://nssdc.gsfc.nasa.gov/planetary/factsheet/earthfact.html)",
+    "method": "total_road_km / Equator length (40,075 km = 2 pi x WGS84 equatorial radius)"
+  },
+  {
+    "id": "farthest_km",
+    "value": 8871,
+    "unit": "km",
+    "display": "8,871 km",
+    "source": "Itiner-e (de Soto et al. 2025)",
+    "method": "Shortest network distance from Rome (Dijkstra over geodesic road lengths) to the farthest 3 km road piece, rounded up to the whole km"
+  }
+]
