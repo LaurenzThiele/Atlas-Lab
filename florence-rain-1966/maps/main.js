@@ -10,8 +10,8 @@
  * Why MapLibre GL JS: this map needs real map interaction (rotate, tilt, zoom, click, hover) and a
  * static build that works on GitHub Pages with no API key and no tile server. MapLibre does
  * terrain, hillshade and data-driven styling from local files. Labels are HTML markers so they can
- * use Bodoni Moda Italic from @fontsource, because MapLibre's own text needs glyph PBFs that these
- * fonts do not ship as.
+ * use Bodoni Moda Italic (from @fontsource, cut down by fonts.mjs), because MapLibre's own text
+ * needs glyph PBFs that these fonts do not ship as.
  *
  * What you learn: how to build a whole map style by hand from your own layers.
  *
@@ -26,22 +26,54 @@
  *   await renderAt(0.5);                        // rivers half gathered, and the picture finished
  */
 
-import "@fontsource/bodoni-moda/400-italic.css";
-import "@fontsource/bodoni-moda/700.css";
-import "@fontsource/courier-prime/400.css";
+// The fonts, cut down to the characters this map shows (fonts.mjs writes them).
+import "./fonts/fonts.css";
 import {
+  addProtocol,
   Map as MapLibreMap,
   Marker,
   setMaxParallelImageRequests,
   setWorkerCount,
   setWorkerUrl,
 } from "maplibre-gl";
+import { PMTiles, Protocol } from "pmtiles";
 import "maplibre-gl/dist/maplibre-gl.css";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
 
 // MapLibre looks for its worker file next to its own script. Once the bundler has renamed and moved
 // that script, the worker is no longer there, so I tell MapLibre where the bundler put it.
 setWorkerUrl(workerUrl);
+
+// PMTiles: one file per tile set, read tile by tile with HTTP range requests, so a static host
+// such as GitHub Pages can serve it with no tile server. The contours go through the library's
+// own protocol (pmtiles://).
+addProtocol("pmtiles", new Protocol().tile);
+
+// The terrain feeds two sources (see buildStyle), and each source asks for its own copy of every
+// tile. Through this protocol (dem://archive-url/{z}/{x}/{y}) both get the same download: I keep
+// one promise per tile and hand each source a copy, because MapLibre moves the bytes it receives
+// to a worker and the original would be gone for the second source.
+const demArchives = new Map();
+const demTiles = new Map();
+addProtocol("dem", async (params) => {
+  const match = /^dem:\/\/(.+)\/(\d+)\/(\d+)\/(\d+)$/.exec(params.url);
+  if (!match) throw new Error(`not a dem:// tile URL: ${params.url}`);
+  const [, archiveUrl, z, x, y] = match;
+  if (!demArchives.has(archiveUrl)) demArchives.set(archiveUrl, new PMTiles(archiveUrl));
+  if (!demTiles.has(params.url)) {
+    const tile = demArchives
+      .get(archiveUrl)
+      .getZxy(Number(z), Number(x), Number(y))
+      .then((found) => {
+        if (!found) throw new Error(`terrain tile ${z}/${x}/${y} is not in ${archiveUrl}`);
+        return found.data;
+      });
+    tile.catch(() => demTiles.delete(params.url)); // a failed tile is tried again next time
+    demTiles.set(params.url, tile);
+  }
+  const data = await demTiles.get(params.url);
+  return { data: data.slice(0) };
+});
 
 const CARTA = "#EAE3D2";
 const INCHIOSTRO = "#2A2723";
@@ -98,6 +130,7 @@ let maxWashKm = 0;
 let riverBaseFilter = null;
 // One scale for every px value, so a half-size canvas can show the same picture at half size.
 let pxScale = 1;
+let arnoDisplayRequested = false;
 const px = (value) => value * pxScale;
 
 /** Width grows with the square root of area: the river's width on the ground grows roughly so. */
@@ -160,7 +193,7 @@ async function fetchJson(name) {
 function demSource() {
   return {
     type: "raster-dem",
-    tiles: [`${layersUrl}terrain/{z}/{x}/{y}.png`],
+    tiles: [`dem://${layersUrl}terrain.pmtiles/{z}/{x}/{y}`],
     encoding: "terrarium",
     tileSize: 256,
     minzoom: 6,
@@ -190,6 +223,8 @@ function boxPolygon([west, south, east, north]) {
   const ring = [[west, south], [east, south], [east, north], [west, north], [west, south]];
   return { type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [ring] } };
 }
+
+const EMPTY = { type: "FeatureCollection", features: [] };
 
 function geojsonSource(data, extra = {}) {
   // tolerance is how much MapLibre simplifies per tile. A low value keeps thin lines from kinking.
@@ -224,7 +259,7 @@ function buildStyle(data) {
       // It feeds a second hillshade over a paper-coloured mask of the box, for close-ups only.
       dem_city: {
         type: "raster-dem",
-        tiles: [`${layersUrl}terrain_city/{z}/{x}/{y}.png`],
+        tiles: [`dem://${layersUrl}terrain.pmtiles/{z}/{x}/{y}`],
         encoding: "terrarium",
         tileSize: 256,
         minzoom: 11,
@@ -232,14 +267,16 @@ function buildStyle(data) {
         bounds: CITY_TILE_BOX,
       },
       city_box: { type: "geojson", data: boxPolygon(CITY_TILE_BOX) },
-      contours: geojsonSource(`${layersUrl}contours.geojson`),
+      // Vector tiles: only the contours on screen load, each simplified for its zoom.
+      contours: { type: "vector", url: `pmtiles://${layersUrl}contours.pmtiles` },
       basin: geojsonSource(data.basin),
       basin_outline: geojsonSource(firstRingAsLine(data.basin), { lineMetrics: true }),
       basin_units: geojsonSource(data.basinUnits),
       rivers_upstream: geojsonSource(data.riversUpstream),
-      rivers_downstream: geojsonSource(`${layersUrl}rivers_downstream.geojson`),
-      arno: geojsonSource(`${layersUrl}arno.geojson`),
-      arno_display: geojsonSource(`${layersUrl}arno_display.geojson`, { lineMetrics: true }),
+      rivers_downstream: geojsonSource(data.riversDownstream),
+      arno: geojsonSource(data.arno),
+      // The smoothed Arno only shows in close-ups, so it starts empty and loads on first use.
+      arno_display: geojsonSource(EMPTY, { lineMetrics: true }),
       bridge: geojsonSource({
         type: "Feature",
         properties: {},
@@ -297,6 +334,7 @@ function buildStyle(data) {
         id: "contours",
         type: "line",
         source: "contours",
+        "source-layer": "contours",
         paint: {
           "line-color": INCHIOSTRO,
           "line-opacity": 0.55,
@@ -521,17 +559,20 @@ async function buildMap(container, options) {
     setMaxParallelImageRequests(1);
   }
 
-  const [basin, basinUnits, riversUpstream, points, figures] = await Promise.all([
-    fetchJson("basin.geojson"),
-    fetchJson("basin_units.geojson"),
-    fetchJson("rivers_upstream.geojson"),
-    fetchJson("points.geojson"),
-    fetchJson("key_figures.json"),
-    document.fonts.load('italic 400 20px "Bodoni Moda"'),
-    document.fonts.load('700 20px "Bodoni Moda"'),
-    document.fonts.load('400 20px "Courier Prime"'),
-  ]);
-  const data = { basin, basinUnits, riversUpstream, points, figures };
+  const [basin, basinUnits, riversUpstream, riversDownstream, arno, points, figures] =
+    await Promise.all([
+      fetchJson("basin.geojson"),
+      fetchJson("basin_units.geojson"),
+      fetchJson("rivers_upstream.geojson"),
+      fetchJson("rivers_downstream.geojson"),
+      fetchJson("arno.geojson"),
+      fetchJson("points.geojson"),
+      fetchJson("key_figures.json"),
+      document.fonts.load('italic 400 20px "Bodoni Moda"'),
+      document.fonts.load('700 20px "Bodoni Moda"'),
+      document.fonts.load('400 20px "Courier Prime"'),
+    ]);
+  const data = { basin, basinUnits, riversUpstream, riversDownstream, arno, points, figures };
   maxDistKm = Math.max(...riversUpstream.features.map((reach) => reach.properties.dist_to_florence_km));
   maxWashKm = Math.max(...basinUnits.features.map((unit) => unit.properties.wash_order));
 
@@ -546,6 +587,9 @@ async function buildMap(container, options) {
     minZoom: 6.5,
     maxZoom: 15,
     interactive: options.interactive ?? !deterministic,
+    // A phone at 3x would draw nine times the pixels of 1x for a picture the eye cannot tell
+    // from 2x, so I stop at 2.
+    pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
     ...(deterministic
       ? {
           // devicePixelRatio 1: one canvas pixel is one output pixel. preserveDrawingBuffer lets a
@@ -557,6 +601,7 @@ async function buildMap(container, options) {
       : {}),
   });
   map.on("error", (event) => console.error(event.error ?? event));
+  map.on("zoom", loadArnoDisplayWhenShown);
   map.on("sourcedata", (event) => {
     if (event.tile) tilesArrived = true;
   });
@@ -732,6 +777,7 @@ export function setLayers(layers) {
   }
 
   for (const [layer, isVisible] of visible) setVisible(layer, isVisible);
+  loadArnoDisplayWhenShown();
 
   for (const [id, label] of Object.entries(labels)) {
     const named = layers.labels === true ? {} : layers.labels?.[id];
@@ -739,6 +785,20 @@ export function setLayers(layers) {
     label.setOpacity(named ? (named.opacity ?? 1) : 0);
   }
   refreshLabels();
+}
+
+/**
+ * Load the smoothed Arno the first time it can be seen: when its layer is on and, on the public
+ * map, the camera comes within a zoom level of the close-ups that draw it. Until then the map has
+ * no reason to download it. Handing MapLibre the URL (not the parsed data) lets its worker fetch
+ * the file, and the map does not report idle before the line is in.
+ */
+function loadArnoDisplayWhenShown() {
+  if (arnoDisplayRequested) return;
+  if (map.getLayoutProperty("arno_display", "visibility") === "none") return;
+  if (!isDeterministic && map.getZoom() < SMOOTH_ARNO_FROM_ZOOM - 1) return;
+  arnoDisplayRequested = true;
+  map.getSource("arno_display").setData(`${layersUrl}arno_display.geojson`);
 }
 
 /**

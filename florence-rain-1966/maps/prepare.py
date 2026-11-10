@@ -1,20 +1,26 @@
 """Turn data/raw into the small layers the map loads.
 
-What it does: I cut the Copernicus DEM into Terrarium terrain tiles, draw 100 m contours, and
+What it does: I cut the Copernicus DEM into Terrarium terrain tiles, packed into one PMTiles
+archive, draw 100 m contours (as GeoJSON for download and as vector tiles for the map), and
 select the basin and the rivers that drain through Ponte Vecchio, using the same selection code
 as the key figures. I also make the two procedural textures (halftone dots and paper grain).
 Reads:  data/raw/ (HydroBASINS, HydroRIVERS, Copernicus DEM), data/key_figures.json
-Writes: maps/layers/ (terrain tiles, GeoJSON layers, halftone.png, paper.png, key_figures.json)
+Writes: maps/layers/ (terrain.pmtiles, contours.pmtiles, GeoJSON layers, halftone.png,
+        paper.png and paper.webp, key_figures.json, meta.json)
 Run:    uv run maps/prepare.py   (from the piece folder)
 
 Why Python: rasterio, GDAL and matplotlib do raster warping and contouring in a few lines, and the
 browser only ever has to load the finished result.
 
 What you learn: how to prepare a static 3D map that needs no tile server. Height can be stored as
-ordinary PNG colours, contours are one matplotlib call away, and a river network can be split
-into "above this bridge" and "below this bridge" by walking IDs instead of doing a GIS overlay.
+ordinary image colours, thousands of tiles fit in one PMTiles file that the browser reads piece by
+piece with HTTP range requests, contours are one matplotlib call away, and a river network can be
+split into "above this bridge" and "below this bridge" by walking IDs instead of doing a GIS
+overlay.
 """
 
+import gzip
+import io
 import json
 import shutil
 import sys
@@ -28,7 +34,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import rasterio
 import shapely
+from mapbox_vector_tile import encode as encode_mvt
 from PIL import Image
+from pmtiles.tile import Compression, TileType, zxy_to_tileid
+from pmtiles.writer import write as write_pmtiles_file
 from rasterio.merge import merge
 from rasterio.transform import from_bounds, from_origin
 from rasterio.warp import Resampling, reproject
@@ -63,6 +72,11 @@ TERRAIN_ZOOMS = range(6, 11)  # z10 is about 110 m per pixel here: enough for a 
 CITY_TERRAIN_BOX = (11.10, 43.64, 11.40, 43.90)  # lon_min, lat_min, lon_max, lat_max, EPSG:4326
 CITY_TERRAIN_ZOOMS = range(11, 13)
 TILE_PX = 256
+# One archive for the whole pyramid, the city zooms included. A folder of tiles would be hundreds
+# of small files; one PMTiles file is a single upload, and the browser still fetches only the tiles
+# it needs, with HTTP range requests. Lossless WebP keeps every height exact and is about 30 %
+# smaller than PNG.
+TERRAIN_PMTILES = "terrain.pmtiles"
 # EPSG:3857, Web Mercator: every web map tile pyramid is cut in it, because its square world
 # divides into square tiles of 2^z x 2^z. It distorts area badly, so I never measure in it.
 TILE_CRS = "EPSG:3857"
@@ -94,6 +108,16 @@ CONTOUR_MIN_LENGTH_M = 400  # shorter loops are radar speckle on one hilltop, no
 # Around the city the map gets close enough to see the corners a 90 m grid leaves in a contour.
 CITY_RADIUS_M = 8_000
 CITY_CONTOUR_CHAIKIN_PASSES = 2
+# The contours are too big for one GeoJSON download at the start (about 4 MB), so the map reads
+# them as vector tiles: each tile holds only its own lines, simplified for its zoom. I simplify by
+# 0.2 px of a 512 px tile, the same tolerance MapLibre used when it tiled the GeoJSON itself, and
+# stop at z14 like it did, so the lines look the same at every zoom.
+CONTOURS_PMTILES = "contours.pmtiles"
+CONTOUR_TILE_ZOOMS = range(15)
+CONTOUR_TILE_PX = 512
+CONTOUR_TOLERANCE_PX = 0.2
+CONTOUR_BUFFER_PX = 8  # lines run a little past the tile edge, so no seam shows where tiles meet
+MVT_EXTENT = 8192  # tile coordinates per tile side; MapLibre's own GeoJSON tiles use the same
 
 PISA = (10.40, 43.72)
 # The display Arno. HydroRIVERS draws rivers on its 15 arc-second grid, so the raw line is a
@@ -107,7 +131,7 @@ DISPLAY_SIGMA_M = 700
 BRIDGE_BEND_KM = 1.2
 MAX_BRIDGE_MISS_KM = 0.4
 COORD_DECIMALS = 5  # about 1 m on the ground, far finer than any source line here
-MAX_LAYERS_MB = 12
+MAX_LAYERS_MB = 20
 
 # The published text for every figure. The script stops if the data ever says otherwise.
 EXPECTED_DISPLAY = {
@@ -222,25 +246,24 @@ def relief_weight(
     return weight
 
 
-def write_terrain_tiles(
+def terrain_tiles(
     dem_m: np.ndarray,
     transform: rasterio.Affine,
     crs: object,
     aoi_m: shapely.Geometry,
-    name: str = "terrain",
     extent: tuple[float, float, float, float] = EXTENT,
     zooms: range = TERRAIN_ZOOMS,
-) -> int:
-    """Warp the DEM into every tile of the pyramid (zooms) that touches the extent."""
-    out_dir = LAYERS_DIR / name
-    if out_dir.exists():
-        shutil.rmtree(out_dir)
+) -> dict[tuple[int, int, int], bytes]:
+    """Warp the DEM into every tile of the pyramid (zooms) that touches the extent.
+
+    Returns {(z, x, y): lossless WebP bytes}.
+    """
     west, south, east, north = extent
     # Tiles outside the outline are still written, flat at 0 m: they compress to almost nothing,
     # and MapLibre then never meets a missing tile inside the bounds it was given.
     edge = gpd.GeoSeries([aoi_m], crs=AOI_CRS).to_crs(TILE_CRS).iloc[0]
     shapely.prepare(edge)  # an index on the polygon, because every tile asks 65,536 questions
-    count = 0
+    tiles = {}
     for zoom in zooms:
         for x in range(lon_to_tile(west, zoom), lon_to_tile(east, zoom) + 1):
             for y in range(lat_to_tile(north, zoom), lat_to_tile(south, zoom) + 1):
@@ -258,12 +281,48 @@ def write_terrain_tiles(
                     resampling=Resampling.bilinear,
                 )
                 height_m *= relief_weight(bounds, edge)
-                path = out_dir / str(zoom) / str(x) / f"{y}.png"
-                path.parent.mkdir(parents=True, exist_ok=True)
-                Image.fromarray(encode_terrarium(height_m), "RGB").save(path, optimize=True)
-                count += 1
-    print(f"{name}: {count} tiles, z{zooms[0]} to z{zooms[-1]}")
-    return count
+                image = io.BytesIO()
+                Image.fromarray(encode_terrarium(height_m), "RGB").save(
+                    image, "WEBP", lossless=True, quality=100, method=6
+                )
+                tiles[(zoom, x, y)] = image.getvalue()
+    print(f"terrain: {len(tiles)} tiles, z{zooms[0]} to z{zooms[-1]}")
+    return tiles
+
+
+def write_pmtiles(
+    name: str,
+    tiles: dict[tuple[int, int, int], bytes],
+    tile_type: TileType,
+    compression: Compression,
+    bounds: tuple[float, float, float, float],
+    metadata: dict,
+) -> None:
+    """Pack tiles into one PMTiles archive.
+
+    PMTiles numbers every tile along a Hilbert curve (the tile ID) and keeps a directory from ID to
+    byte offset at the front of the file. A reader fetches that directory once, then any tile with
+    one range request. Writing in ID order keeps neighbouring tiles next to each other on disk.
+    """
+    zooms = sorted({z for z, _, _ in tiles})
+    west, south, east, north = bounds
+    header = {
+        "tile_type": tile_type,
+        "tile_compression": compression,
+        "min_lon_e7": int(west * 1e7),
+        "min_lat_e7": int(south * 1e7),
+        "max_lon_e7": int(east * 1e7),
+        "max_lat_e7": int(north * 1e7),
+        "center_zoom": zooms[0],
+        "center_lon_e7": int((west + east) / 2 * 1e7),
+        "center_lat_e7": int((south + north) / 2 * 1e7),
+    }
+    with write_pmtiles_file(LAYERS_DIR / name) as writer:
+        for (z, x, y), data in sorted(tiles.items(), key=lambda item: zxy_to_tileid(*item[0])):
+            writer.write_tile(zxy_to_tileid(z, x, y), data)
+        writer.finalize(header, metadata)
+    size_mb = (LAYERS_DIR / name).stat().st_size / 1e6
+    print(f"{name}: {len(tiles)} tiles, z{zooms[0]} to z{zooms[-1]}, {size_mb:.2f} MB")
 
 
 def city_tile_box() -> tuple[float, float, float, float]:
@@ -311,8 +370,12 @@ def feature(geometry: shapely.Geometry, properties: dict) -> dict:
 
 def write_contours(
     dem_m: np.ndarray, transform: rasterio.Affine, crs: object, aoi_m: shapely.Geometry
-) -> None:
-    """Draw 100 m contours inside the area of interest, thinned to fit in a few megabytes."""
+) -> list[tuple[shapely.Geometry, bool]]:
+    """Draw 100 m contours inside the area of interest, thinned to fit in a few megabytes.
+
+    Writes contours.geojson (the download) and returns [(lines in EPSG:4326, is index contour)]
+    for the vector tiles.
+    """
     # I only grid the box around the outline: the contours outside it would be cut off anyway.
     bounds_m = aoi_m.bounds
     width_px = int((bounds_m[2] - bounds_m[0]) / CONTOUR_PIXEL_M)
@@ -342,6 +405,7 @@ def write_contours(
     plt.close(figure_)
 
     features = []
+    levels = []
     shapely.prepare(aoi_m)
     bridge_m = gpd.GeoSeries([kf.PONTE_VECCHIO], crs="EPSG:4326").to_crs(CONTOUR_CRS).iloc[0]
     city_area = bridge_m.buffer(CITY_RADIUS_M)
@@ -368,24 +432,90 @@ def write_contours(
         # One feature per level, not per line: the properties are written once, not 100,000 times.
         properties = {"elev_m": elev_m, "index": elev_m % CONTOUR_INDEX_M == 0}
         features.append(feature(geometry, properties))
+        levels.append((geometry, properties["index"]))
     write_geojson("contours.geojson", features)
     print(f"contours: {len(features)} levels, {levels_m[0]} to {levels_m[-1]} m")
+    return levels
 
 
-def reach_features(reaches: gpd.GeoDataFrame, stem_ids: set[int]) -> list[dict]:
-    """One GeoJSON feature per river reach, with the fields the map styles and queries."""
+def contour_tiles(levels: list[tuple[shapely.Geometry, bool]]) -> dict[tuple[int, int, int], bytes]:
+    """Cut the contours into Mapbox Vector Tiles, one simplification per zoom.
+
+    Each tile gets two features at most, the plain and the index contours, as multi-lines: the
+    map styles only by "index", so every other property would be bytes for nothing. Tiles are
+    gzipped, as the PMTiles spec expects for vector tiles.
+    """
+    lines_m, flags = [], []
+    for geometry, is_index in levels:
+        projected = gpd.GeoSeries([geometry], crs="EPSG:4326").to_crs(TILE_CRS).iloc[0]
+        for part in shapely.get_parts(projected):
+            lines_m.append(part)
+            flags.append(is_index)
+    lines_m, flags = np.array(lines_m), np.array(flags)
+    west, south, east, north = shapely.total_bounds(
+        gpd.GeoSeries(lines_m, crs=TILE_CRS).to_crs("EPSG:4326").values
+    )
+    tiles = {}
+    for zoom in CONTOUR_TILE_ZOOMS:
+        tile_m = 2 * MERCATOR_HALF_WORLD_M / 2**zoom
+        tolerance_m = CONTOUR_TOLERANCE_PX * tile_m / CONTOUR_TILE_PX
+        buffer_m = CONTOUR_BUFFER_PX * tile_m / CONTOUR_TILE_PX
+        simplified = shapely.simplify(lines_m, tolerance_m, preserve_topology=False)
+        tree = shapely.STRtree(simplified)
+        for x in range(lon_to_tile(west, zoom), lon_to_tile(east, zoom) + 1):
+            for y in range(lat_to_tile(north, zoom), lat_to_tile(south, zoom) + 1):
+                bounds = tile_bounds_m(x, y, zoom)
+                box = (
+                    bounds[0] - buffer_m,
+                    bounds[1] - buffer_m,
+                    bounds[2] + buffer_m,
+                    bounds[3] + buffer_m,
+                )
+                hits = tree.query(shapely.box(*box))
+                if len(hits) == 0:
+                    continue
+                features = []
+                for is_index in (False, True):
+                    chosen = hits[flags[hits] == is_index]
+                    clipped = shapely.clip_by_rect(simplified[chosen], *box)
+                    parts = [
+                        line
+                        for line in shapely.get_parts(clipped)
+                        if line.geom_type == "LineString" and not line.is_empty
+                    ]
+                    if parts:
+                        features.append(
+                            {"geometry": MultiLineString(parts), "properties": {"index": is_index}}
+                        )
+                if features:
+                    tile = encode_mvt(
+                        [{"name": "contours", "features": features}],
+                        default_options={"quantize_bounds": bounds, "extents": MVT_EXTENT},
+                    )
+                    tiles[(zoom, x, y)] = gzip.compress(tile, mtime=0)
+    return tiles
+
+
+def reach_features(
+    reaches: gpd.GeoDataFrame, stem_ids: set[int], with_length: bool = False
+) -> list[dict]:
+    """One GeoJSON feature per river reach, with only the fields the map styles and queries.
+
+    Every field is repeated in every reach, so an unused one costs bytes on every load. The reach
+    length is kept only for the Arno, whose reaches are summed into its length.
+    """
     features = []
     for row in reaches.itertuples():
         properties = {
             "HYRIV_ID": row.HYRIV_ID,
             "NEXT_DOWN": row.NEXT_DOWN,
             "UPLAND_SKM": row.UPLAND_SKM,
-            "LENGTH_KM": row.LENGTH_KM,
-            "DIST_DN_KM": row.DIST_DN_KM,
             "dist_to_florence_km": round(float(row.dist_to_florence_km), 1),
             # Above a certain zoom the map draws a smoothed Arno, so the raw reach must step aside.
             "main_stem": row.HYRIV_ID in stem_ids,
         }
+        if with_length:
+            properties["LENGTH_KM"] = row.LENGTH_KM
         features.append(feature(row.geometry, properties))
     return features
 
@@ -597,7 +727,10 @@ def write_paper() -> None:
     rgba = np.zeros((PAPER_PX, PAPER_PX, 4), dtype=np.uint8)
     rgba[..., :3] = INCHIOSTRO_RGB
     rgba[..., 3] = np.round(alpha * 255).astype(np.uint8)
-    Image.fromarray(rgba, "RGBA").save(LAYERS_DIR / "paper.png", optimize=True)
+    image = Image.fromarray(rgba, "RGBA")
+    # The map loads the WebP: lossless, so not one grain changes, and about 30 % smaller.
+    image.save(LAYERS_DIR / "paper.webp", "WEBP", lossless=True, quality=100, method=6)
+    image.save(LAYERS_DIR / "paper.png", optimize=True)
 
 
 def read_key_figures() -> dict[str, dict]:
@@ -700,7 +833,7 @@ def main() -> None:
 
     write_geojson("rivers_upstream.geojson", reach_features(upstream, stem_ids))
     write_geojson("rivers_downstream.geojson", reach_features(downstream, stem_ids))
-    write_geojson("arno.geojson", reach_features(stem, stem_ids))
+    write_geojson("arno.geojson", reach_features(stem, stem_ids, with_length=True))
 
     display_line = LineString(bend_through_bridge(smooth_display_line(stem_line)))
     write_geojson("arno_display.geojson", [feature(display_line, {"name": "Arno"})])
@@ -720,11 +853,23 @@ def main() -> None:
     )
 
     dem_m, transform, crs = read_dem()
-    write_contours(dem_m, transform, crs, aoi_m)
-    write_terrain_tiles(dem_m, transform, crs, aoi_m)
-    write_terrain_tiles(
-        dem_m, transform, crs, aoi_m, "terrain_city", city_tile_box(), CITY_TERRAIN_ZOOMS
+    levels = write_contours(dem_m, transform, crs, aoi_m)
+    write_pmtiles(
+        CONTOURS_PMTILES,
+        contour_tiles(levels),
+        TileType.MVT,
+        Compression.GZIP,
+        EXTENT,
+        {"vector_layers": [{"id": "contours", "fields": {"index": "Boolean"}}]},
     )
+    # The whole relief pyramid and the sharper city zooms go into one archive. The map keeps
+    # them apart by zoom and bounds, as it did when they were two folders.
+    tiles = terrain_tiles(dem_m, transform, crs, aoi_m)
+    tiles |= terrain_tiles(dem_m, transform, crs, aoi_m, city_tile_box(), CITY_TERRAIN_ZOOMS)
+    write_pmtiles(TERRAIN_PMTILES, tiles, TileType.WEBP, Compression.NONE, EXTENT, {})
+    # The tile folders of earlier versions of this script, if they are still here.
+    for old in ("terrain", "terrain_city"):
+        shutil.rmtree(LAYERS_DIR / old, ignore_errors=True)
 
     total_bytes = 0
     for path in sorted(LAYERS_DIR.iterdir()):

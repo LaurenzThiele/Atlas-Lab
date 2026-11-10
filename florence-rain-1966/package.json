@@ -6,7 +6,10 @@
     "dev": "vite --config maps/vite.config.js",
     "build": "vite build maps",
     "snapshot": "node maps/snapshot.mjs",
-    "deploy": "npm run build && gh-pages -d maps/dist -e florence-rain-1966 --add --nojekyll"
+    "deploy": "npm run build && gh-pages -d maps/dist -e florence-rain-1966 --add --nojekyll",
+    "fonts": "node maps/fonts.mjs",
+    "predev": "node maps/fonts.mjs",
+    "prebuild": "node maps/fonts.mjs"
   },
   "license": "ISC",
   "type": "module",
@@ -14,7 +17,8 @@
     "@fontsource/bodoni-moda": "^5.3.0",
     "@fontsource/courier-prime": "^5.3.0",
     "@fontsource/source-serif-4": "^5.3.1",
-    "maplibre-gl": "^6.16.0"
+    "maplibre-gl": "^6.16.0",
+    "pmtiles": "^4.5.0"
   },
   "devDependencies": {
     "ffmpeg-static": "^5.3.0",
@@ -22,6 +26,7 @@
     "gh-pages": "^6.3.0",
     "gsap": "^3.15.1",
     "playwright": "^1.64.1",
+    "subset-font": "^2.9.0",
     "vite": "^8.3.5"
   },
   "private": true

@@ -40,7 +40,7 @@ body {
   inset: 0;
   z-index: 20;
   pointer-events: none;
-  background-image: url("./layers/paper.png");
+  background-image: url("./layers/paper.webp");
   background-size: calc(512px * var(--texture-scale));
   mix-blend-mode: multiply;
   opacity: 0.06;

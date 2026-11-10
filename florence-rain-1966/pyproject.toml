@@ -5,10 +5,12 @@ description = "Atlas Lab: all the rain that drowned Florence, the Arno basin in 
 requires-python = ">=3.12"
 dependencies = [
     "geopandas>=1.2.0",
+    "mapbox-vector-tile>=2.2.0",
     "matplotlib>=3.11.2",
     "numpy>=2.5.4",
     "pandas>=3.1.0",
     "pillow>=13.0.0",
+    "pmtiles>=3.8.1",
     "pyogrio>=0.13.0",
     "rasterio>=1.5.2",
     "requests>=2.34.2",

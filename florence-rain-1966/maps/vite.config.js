@@ -1,23 +1,45 @@
 // Build settings for the map. Why Vite: it bundles MapLibre and the fonts into plain static files,
 // so the finished site needs no server of its own. The relative base './' lets the site work from
 // any GitHub Pages subpath. I fetch the layers at run time, where the bundler cannot see them, so a
-// small plugin copies maps/layers/ into the build.
+// small plugin copies the layers the map uses into the build.
 //
 // The two commands use different roots on purpose. The dev server serves the whole piece folder, so
 // that any page you write next to maps/ can import the map's API from ../maps/main.js. The build
 // starts from maps/ alone, so only the public map ends up in maps/dist/.
-import { cpSync } from "node:fs";
+import { cpSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { defineConfig } from "vite";
 
 const HERE = import.meta.dirname;
 const PIECE_DIR = resolve(HERE, "..");
 
+// Only what the public map fetches, plus the downloads it offers. prepare.py also writes files for
+// other uses (paper.png, the paper texture the stylesheet gets as a hashed asset instead), and
+// copying them would only make the site bigger.
+const PUBLIC_LAYERS = [
+  "terrain.pmtiles",
+  "contours.pmtiles",
+  "contours.geojson", // offered in Download the data
+  "basin.geojson",
+  "basin_units.geojson",
+  "rivers_upstream.geojson",
+  "rivers_downstream.geojson",
+  "arno.geojson",
+  "arno_display.geojson",
+  "points.geojson",
+  "key_figures.json",
+  "meta.json",
+  "halftone.png",
+];
+
 function copyLayers() {
   return {
     name: "copy-layers",
     closeBundle() {
-      cpSync(resolve(HERE, "layers"), resolve(HERE, "dist/layers"), { recursive: true });
+      mkdirSync(resolve(HERE, "dist/layers"), { recursive: true });
+      for (const name of PUBLIC_LAYERS) {
+        cpSync(resolve(HERE, "layers", name), resolve(HERE, "dist/layers", name));
+      }
     },
   };
 }

@@ -17,8 +17,6 @@
  * browser, with no server, and how to set a key where each entry is the layer's own switch.
  */
 
-import "@fontsource/source-serif-4/400.css";
-import "@fontsource/source-serif-4/600.css";
 import { createMap, setLayers, setTime } from "./main.js";
 // After main.js, so that my rules come after MapLibre's own stylesheet.
 import "./style.css";
@@ -1010,11 +1008,9 @@ async function start() {
   const reachById = new Map(
     data.riversUpstream.features.map((reach) => [reach.properties.HYRIV_ID, reach]),
   );
-  const [arno, downstream, meta] = await Promise.all([
-    fetchLayer("arno.geojson"),
-    fetchLayer("rivers_downstream.geojson"),
-    fetchLayer("meta.json"),
-  ]);
+  // The map has already loaded the Arno and the downstream rivers; only meta.json is new here.
+  const { arno, riversDownstream: downstream } = data;
+  const meta = await fetchLayer("meta.json");
   renderFetched(meta);
 
   // Every count comes from the layers themselves, never typed in.
