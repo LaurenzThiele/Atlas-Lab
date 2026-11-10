@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Atlas Lab | Maps of the whole world from open data</title>
+    <meta
+      name="description"
+      content="Maps of the whole world from open data. Every map here is open: the code, the data and the method are on GitHub. Take one and make it your own."
+    />
+    <meta name="theme-color" content="#F4F1EA" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Atlas Lab" />
+    <meta property="og:title" content="Atlas Lab | Maps of the whole world from open data" />
+    <meta
+      property="og:description"
+      content="Every map here is open: the code, the data and the method are on GitHub. Take one and make it your own."
+    />
+    <meta property="og:url" content="https://laurenzthiele.github.io/Atlas-Lab/" />
+    <meta property="og:image" content="https://laurenzthiele.github.io/Atlas-Lab/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Atlas Lab: maps of the whole world from open data" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Atlas Lab | Maps of the whole world from open data" />
+    <meta
+      name="twitter:description"
+      content="Every map here is open: the code, the data and the method are on GitHub. Take one and make it your own."
+    />
+    <meta name="twitter:image" content="https://laurenzthiele.github.io/Atlas-Lab/og.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Space+Grotesk:wght@700&display=swap"
+    />
+
+    <style>
+      :root {
+        --paper: #f4f1ea;
+        --ink: #0f141a;
+        --slate: #8a94a3;
+        --blue: #1f5fa8;
+        --display: "Space Grotesk", system-ui, sans-serif;
+        --text: "Inter", system-ui, sans-serif;
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      html {
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--text);
+        font-variant-ligatures: none;
+        -webkit-text-size-adjust: 100%;
+      }
+      body {
+        margin: 0;
+      }
+      .wrap {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding-left: 24px;
+        padding-right: 24px;
+      }
+
+      /* Header */
+      header {
+        padding-top: 56px;
+      }
+      .lockup {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+      }
+      .lockup svg {
+        display: block;
+        width: 48px;
+        height: 48px;
+        flex: none;
+      }
+      .wordmark {
+        margin: 0;
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 28px;
+        line-height: 1;
+        letter-spacing: 0.12em;
+      }
+      .byline {
+        margin: 8px 0 0;
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 13px;
+        line-height: 1;
+        letter-spacing: 0.32em;
+        color: var(--slate);
+      }
+      .tagline {
+        margin: 48px 0 0;
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 40px;
+        line-height: 1.15;
+      }
+      .intro {
+        margin: 16px 0 0;
+        max-width: 40em;
+        font-size: 18px;
+        line-height: 1.5;
+        color: rgb(15 20 26 / 0.8);
+      }
+      .rule {
+        margin: 40px 0 0;
+        border: 0;
+        border-top: 1px solid var(--slate);
+      }
+
+      /* Cards */
+      main {
+        padding-top: 48px;
+        padding-bottom: 72px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 32px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .card {
+        display: block;
+        color: var(--ink);
+        text-decoration: none;
+      }
+      .card img {
+        display: block;
+        width: 100%;
+        height: auto;
+        aspect-ratio: 16 / 10;
+        object-fit: cover;
+        border: 1px solid var(--ink);
+        background: var(--paper);
+      }
+      .card h2 {
+        margin: 16px 0 0;
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 22px;
+        line-height: 1.2;
+      }
+      .card p {
+        margin: 8px 0 0;
+        font-size: 16px;
+        line-height: 1.5;
+        color: rgb(15 20 26 / 0.75);
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        overflow: hidden;
+      }
+      .card:hover h2,
+      .card:focus-visible h2 {
+        color: var(--blue);
+        text-decoration: underline;
+        text-decoration-thickness: 2px;
+        text-underline-offset: 3px;
+      }
+      .card:focus {
+        outline: none;
+      }
+      .card:focus-visible {
+        outline: 2px solid var(--blue);
+        outline-offset: 4px;
+      }
+      .empty {
+        margin: 0;
+        font-size: 16px;
+        line-height: 1.5;
+      }
+
+      /* Footer */
+      footer {
+        padding-bottom: 48px;
+        font-size: 14px;
+        line-height: 1.5;
+        color: rgb(15 20 26 / 0.75);
+      }
+      .foot {
+        border-top: 1px solid var(--slate);
+        padding-top: 24px;
+      }
+      footer p {
+        margin: 0;
+      }
+      footer p + p {
+        margin-top: 4px;
+      }
+      footer a {
+        color: var(--blue);
+      }
+      footer a:hover {
+        text-decoration-thickness: 2px;
+      }
+      footer a:focus-visible {
+        outline: 2px solid var(--blue);
+        outline-offset: 2px;
+      }
+
+      @media (max-width: 600px) {
+        .wrap {
+          padding-left: 16px;
+          padding-right: 16px;
+        }
+        header {
+          padding-top: 40px;
+        }
+        .tagline {
+          font-size: 28px;
+        }
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="wrap">
+      <div class="lockup">
+        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><circle cx="500" cy="500" r="490" fill="#0F141A"/><circle cx="500" cy="500" r="400" fill="none" stroke="#F4F1EA" stroke-width="70"/><ellipse cx="500" cy="500" rx="180" ry="365" fill="none" stroke="#F4F1EA" stroke-width="44"/><line x1="135" y1="500" x2="865" y2="500" stroke="#F4F1EA" stroke-width="44"/><circle cx="680" cy="500" r="80" fill="#FFB000" stroke="#0F141A" stroke-width="24"/></svg>
+        <p class="wordmark">ATLAS LAB</p>
+      </div>
+      <p class="byline">BY LAURENZ</p>
+      <h1 class="tagline">Maps of the whole world from open data</h1>
+      <p class="intro">
+        Every map here is open: the code, the data and the method are on GitHub. Take one and make
+        it your own.
+      </p>
+      <hr class="rule" />
+    </header>
+
+    <main class="wrap">
+      <!-- CARDS -->
+    </main>
+
+    <footer class="wrap">
+      <div class="foot">
+        <p>Code MIT. Data under each source's licence, listed in each map's README.</p>
+        <p><a href="https://github.com/LaurenzThiele/Atlas-Lab">Code and data on GitHub</a></p>
+      </div>
+    </footer>
+  </body>
+</html>

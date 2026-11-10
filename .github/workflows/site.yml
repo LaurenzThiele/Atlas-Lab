@@ -1,0 +1,48 @@
+# Rebuilds the landing page of the live maps on every push to main and publishes it to the root of
+# the gh-pages branch. It never builds a map: each map is built and deployed from its own folder with
+# npm run deploy, because its tiles are not in the repo. keep_files leaves those map folders alone.
+name: site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: site
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # build.mjs sorts the cards by the date each README was first committed
+
+      - name: Fetch gh-pages (to see which maps are published)
+        run: git fetch origin gh-pages:refs/remotes/origin/gh-pages || echo "gh-pages does not exist yet"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: Build the landing page
+        working-directory: site
+        run: |
+          npm ci
+          npm run build
+
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: site/dist
+          keep_files: true
+          full_commit_message: site

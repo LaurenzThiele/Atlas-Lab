@@ -1,0 +1,11 @@
+{
+  "name": "atlas-lab-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "sharp": "^0.35.5"
+  }
+}

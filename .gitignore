@@ -6,3 +6,5 @@ __pycache__/
 .ruff_cache/
 *.pyc
 *.part*
+site/dist/
+site/node_modules/
