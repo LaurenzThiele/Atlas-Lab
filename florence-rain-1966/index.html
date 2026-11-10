@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>The rain that drowned Florence | Atlas Lab</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="favicon-32.png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <meta
+      name="description"
+      content="A 3D map of the Arno basin: every stream on 4,600 km² of hills ends at one bridge in Florence."
+    />
+    <script type="module" crossorigin src="./assets/index-BXxfnmBF.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-BF4mVHOE.css">
+  </head>
+  <!-- I set the furniture of this map the way a printed atlas sets its title, key and notes. All of
+       it lives in this file and ui.js: createMap() in main.js draws the map alone, without any of it. -->
+  <body class="atlas">
+    <div
+      id="map"
+      role="application"
+      aria-label="3D relief map of the Arno basin upstream of Florence. Click the basin to trace a drop of rain to Ponte Vecchio."
+    ></div>
+    <div id="paper" aria-hidden="true"></div>
+    <div id="vignette" aria-hidden="true"></div>
+
+    <header id="title">
+      <h1>The rain that drowned Florence</h1>
+      <p>
+        In November 1966, the rain on <b id="lede-area">4,600&nbsp;km²</b> of hills poured into one
+        city and gave Florence its worst flood in centuries.
+      </p>
+    </header>
+
+    <svg id="leader" aria-hidden="true" hidden><line /></svg>
+    <span id="anchor" aria-hidden="true" hidden></span>
+    <div id="annotation" role="status" hidden></div>
+
+    <div id="foot">
+      <!-- The one hint line: what a click does, then the gestures. Touch screens get their own words. -->
+      <p id="hint">
+        <span class="wide">
+          <i>Click</i> anywhere in the basin to trace a drop down to Ponte Vecchio in Florence.
+          <i>Drag</i> to move, <i>Ctrl + drag</i> or <i>right-drag</i> to tilt and turn,
+          <i>scroll</i> to zoom.
+        </span>
+        <span class="narrow">
+          <i>Tap</i> anywhere in the basin to trace a drop down to Ponte Vecchio in Florence.
+          <i>Drag</i> to move, <i>two fingers</i> to tilt and turn, <i>pinch</i> to zoom.
+        </span>
+      </p>
+      <!-- The replay is set like the Play control of a timeline band: this map has no band. -->
+      <div id="replay-row">
+        <button id="replay" type="button" aria-label="Replay the rivers" aria-keyshortcuts="Space">
+          <svg class="play-icon" width="12" height="12" viewBox="0 0 20 20" aria-hidden="true">
+            <path d="M6 4v12l10-6z" />
+          </svg>
+          <span>Replay the rivers</span>
+        </button>
+        <span class="play-hint">or press Space</span>
+      </div>
+    </div>
+
+    <div id="buttons" role="group" aria-label="Map view">
+      <button id="zoom-in" type="button" aria-label="Zoom in">
+        <svg viewBox="0 0 20 20" width="16" height="16"><path d="M10 5v10M5 10h10" /></svg>
+      </button>
+      <button id="zoom-out" type="button" aria-label="Zoom out">
+        <svg viewBox="0 0 20 20" width="16" height="16"><path d="M5 10h10" /></svg>
+      </button>
+      <button id="north" class="group" type="button" aria-label="Reset north and tilt">
+        <svg viewBox="0 0 20 20" width="16" height="16">
+          <path d="M10 3.5l3.2 12.5L10 13.4 6.8 16z" />
+        </svg>
+      </button>
+      <button id="tilt" class="group" type="button" aria-label="Back to flat" data-on="true">
+        <svg viewBox="0 0 20 20" width="16" height="16">
+          <path d="M10 3.5l6 3.2v6.6l-6 3.2-6-3.2V6.7zM4 6.7l6 3.3 6-3.3M10 10v6.5" />
+        </svg>
+      </button>
+      <button id="start-view" type="button" aria-label="Back to the start view">
+        <svg viewBox="0 0 20 20" width="16" height="16">
+          <path d="M5 8V5h3M15 8V5h-3M5 12v3h3M15 12v3h-3" />
+        </svg>
+      </button>
+    </div>
+    <p id="tip" class="tip" aria-hidden="true" hidden></p>
+
+    <button id="sheet-open" type="button" aria-label="Show the sheet" hidden>
+      <svg class="sheet-icon" viewBox="0 0 18 18" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"><rect x="2" y="3" width="14" height="12"/><rect x="11" y="3" width="5" height="12" fill="currentColor" stroke="none"/><path d="M8 6.5L5.5 9 8 11.5"/></svg>
+      Map info
+    </button>
+
+    <aside id="sheet" aria-label="Map info: layers, figures and sources">
+      <button id="grab" type="button" aria-label="Open or close the map info" aria-expanded="false">
+        <span></span>
+      </button>
+      <div class="sheet-top">
+        <button id="sheet-fold" type="button" aria-label="Hide the sheet">
+          <svg class="sheet-icon" viewBox="0 0 18 18" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"><rect x="2" y="3" width="14" height="12"/><path d="M11 3v12"/><path d="M5.5 6.5L8 9 5.5 11.5"/></svg>
+        </button>
+      </div>
+
+      <section>
+        <h2>Layers <small>click to show or hide</small></h2>
+        <div id="key">
+          <!-- In the order the map stacks them, top first: from the bridge out to the relief. -->
+          <button class="k" type="button" data-layer="ponte_vecchio" aria-pressed="true">
+            <span class="sample s-bridge"></span>
+            <span class="name">Ponte Vecchio</span>
+            <span class="count"></span>
+          </button>
+          <button class="k" type="button" data-layer="arno_main_stem" aria-pressed="true">
+            <span class="sample s-arno"></span>
+            <span class="name">Arno main stem</span>
+            <span class="count" id="count-arno"></span>
+          </button>
+          <button class="k" type="button" data-layer="upstream_rivers" aria-pressed="true">
+            <span class="sample s-upstream"></span>
+            <span class="name">Upstream rivers</span>
+            <span class="count" id="count-upstream"></span>
+          </button>
+          <button class="k" type="button" data-layer="downstream_rivers" aria-pressed="true">
+            <span class="sample s-downstream"></span>
+            <span class="name">Downstream rivers</span>
+            <span class="count" id="count-downstream"></span>
+          </button>
+          <button class="k" type="button" data-layer="basin" aria-pressed="true">
+            <span class="sample s-basin"></span>
+            <span class="name">Basin</span>
+            <span class="count" id="count-basin"></span>
+          </button>
+          <button class="k" type="button" data-layer="contours" aria-pressed="true">
+            <span class="sample s-contours"></span>
+            <span class="name">Contours, every 100 m</span>
+            <span class="count"></span>
+          </button>
+        </div>
+      </section>
+
+      <section>
+        <h2>In numbers</h2>
+        <div id="numbers"></div>
+      </section>
+
+      <section>
+        <h2>Sources</h2>
+        <ol id="sources">
+          <li>
+            Italian Civil Protection Department, "The flood of Florence": death toll and date.
+            <a href="https://servizio-nazionale.protezionecivile.gov.it/en/pagina-base/flood-florence/"
+              >servizio-nazionale.protezionecivile.gov.it</a
+            >
+          </li>
+          <li>
+            HydroSHEDS (HydroBASINS level 12 v1c, HydroRIVERS v1.0), WWF, Lehner and Grill (2013):
+            basin, rivers, Arno length. HydroSHEDS v1 licence, free for commercial and non-commercial
+            use. <a href="https://www.hydrosheds.org">hydrosheds.org</a>
+          </li>
+          <li>
+            ISTAT, "Approfondimento Firenze" (2024): area of the comune of Firenze.
+            <a href="https://www.istat.it/wp-content/uploads/2024/06/Approfondimento_Firenze.pdf"
+              >istat.it</a
+            >
+          </li>
+          <li>
+            Copernicus DEM GLO-30, ESA and the European Union: terrain and contours. Copernicus DEM
+            licence (GLO-30 Public), free for any use.
+            <a
+              href="https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM"
+              >dataspace.copernicus.eu</a
+            >
+          </li>
+          <li>
+            The Local Italy, "In photos: remembering the great flood of Florence" (2019): the worst
+            flood in centuries, waters near 7 m, a level not seen since 1557.
+            <a href="https://www.thelocal.it/20191104/in-photos-the-great-flood-of-florence-arno-1966"
+              >thelocal.it</a
+            >
+          </li>
+        </ol>
+        <p class="links">
+          <button id="about-open" class="text" type="button">About this map</button>
+          <button id="download-open" class="text" type="button">Download the data</button>
+        </p>
+      </section>
+    </aside>
+
+    <dialog id="about" aria-labelledby="about-title" tabindex="-1">
+      <form method="dialog" class="close">
+        <button type="submit" aria-label="Close">
+          <svg viewBox="0 0 20 20" width="16" height="16"><path d="M5 5l10 10M15 5L5 15" /></svg>
+        </button>
+      </form>
+      <p class="tip" aria-hidden="true" hidden></p>
+      <h2 id="about-title">About this map</h2>
+      <p>
+        The basin is every HydroBASINS level 12 unit that drains through the unit holding Ponte
+        Vecchio. The rivers come from HydroRIVERS, followed through their NEXT_DOWN links. The area
+        is measured in EPSG:3035 and the length of the Arno in EPSG:32632. Relief and contours come
+        from the Copernicus DEM. Each reach's distance to Florence is its distance along the
+        network, not in a straight line.
+      </p>
+      <h3>Licences</h3>
+      <p>
+        HydroSHEDS v1 licence agreement: free for commercial and non-commercial use. Copernicus DEM
+        licence (GLO-30 Public): free for any use, with the notices below. The death toll and the date
+        are from the
+        <a href="https://servizio-nazionale.protezionecivile.gov.it/en/pagina-base/flood-florence/"
+          >Italian Civil Protection</a
+        >, the area of the comune of Firenze from
+        <a href="https://www.istat.it/wp-content/uploads/2024/06/Approfondimento_Firenze.pdf">ISTAT</a>,
+        and the comparison with the flood of 1557 from
+        <a href="https://www.thelocal.it/20191104/in-photos-the-great-flood-of-florence-arno-1966"
+          >The Local Italy</a
+        >.
+      </p>
+      <h3>HydroSHEDS</h3>
+      <p>
+        This product incorporates data from the HydroSHEDS version 1 database which is © World
+        Wildlife Fund, Inc. (2006-2022) and has been used herein under license. WWF has not evaluated
+        the data as altered and incorporated within this product, and therefore gives no warranty
+        regarding its accuracy, completeness, currency or suitability for any particular purpose.
+        Portions of the HydroSHEDS v1 database incorporate data which are the intellectual property
+        rights of © USGS (2006-2008), NASA (2000-2005), ESRI (1992-1998), CIAT (2004-2006), UNEP-WCMC
+        (1993), WWF (2004), Commonwealth of Australia (2007), and Her Royal Majesty and the British
+        Crown and are used under license. The HydroSHEDS v1 database and more information are
+        available at <a href="https://www.hydrosheds.org">https://www.hydrosheds.org</a>.
+      </p>
+      <h3>Copernicus DEM</h3>
+      <p>
+        produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space
+        GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved
+      </p>
+      <p>
+        The organisations in charge of the Copernicus programme by law or by delegation do not incur
+        any liability for any use of the Copernicus WorldDEM-30
+      </p>
+      <!-- Filled from layers/meta.json, which prepare.py writes from data/raw/sources.json. -->
+      <p id="fetched" class="fetched"></p>
+    </dialog>
+
+    <dialog id="download" aria-labelledby="download-title" tabindex="-1">
+      <form method="dialog" class="close">
+        <button type="submit" aria-label="Close">
+          <svg viewBox="0 0 20 20" width="16" height="16"><path d="M5 5l10 10M15 5L5 15" /></svg>
+        </button>
+      </form>
+      <p class="tip" aria-hidden="true" hidden></p>
+      <h2 id="download-title">Download the data</h2>
+      <h3>The layers this map draws</h3>
+      <ul>
+        <li><a href="layers/contours.geojson" download>Contours, every 100 m</a></li>
+        <li><a href="layers/key_figures.json" download>The key figures</a></li>
+      </ul>
+      <p>
+        The basin and river layers come from HydroSHEDS, whose licence does not allow sharing them
+        as separate files. Download HydroBASINS and HydroRIVERS from
+        <a href="https://www.hydrosheds.org">hydrosheds.org</a> and rebuild every layer with
+        <code>uv run maps/prepare.py</code>, as the
+        <a
+          href="https://github.com/LaurenzThiele/Atlas-Lab/blob/main/florence-rain-1966/README.md#run-it-yourself"
+          >README</a
+        >
+        explains.
+      </p>
+      <h3>The original datasets</h3>
+      <ul>
+        <li>
+          <a href="https://data.hydrosheds.org/file/HydroBASINS/standard/hybas_eu_lev12_v1c.zip"
+            >HydroBASINS Europe, level 12</a
+          >
+        </li>
+        <li>
+          <a href="https://data.hydrosheds.org/file/HydroRIVERS/HydroRIVERS_v10_eu_shp.zip"
+            >HydroRIVERS Europe</a
+          >
+        </li>
+        <li>
+          <a href="https://registry.opendata.aws/copernicus-dem/">Copernicus DEM GLO-30</a>
+        </li>
+      </ul>
+    </dialog>
+
+  </body>
+</html>
