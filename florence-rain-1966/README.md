@@ -34,33 +34,84 @@ method in one line next to it.
 
 ## How I made it
 
-1. **`data/download.py` takes a snapshot of open data.** It downloads HydroBASINS, HydroRIVERS and
-   nine Copernicus DEM tiles into `data/raw/`, and writes `data/raw/sources.json` with each file's
-   licence, credit, download date, size and SHA-256. The checksums matter: if a publisher changes a
-   file later, you can tell that your rebuild started from different data.
-2. **`data/key_figures.py` rebuilds the basin upstream of Ponte Vecchio.** Every HydroBASINS unit
-   knows which unit it drains into (`NEXT_DOWN`). I find the unit that holds the bridge and walk
-   that graph upstream: every unit that ends up there is part of the basin. I dissolve them and
-   measure the area in EPSG:3035, which is equal-area, so a square metre on the map is a square
-   metre on the ground. One data quirk: the 90 m radar elevation behind HydroSHEDS cannot see the
-   man-made divide in the flat Val di Chiana, so part of the Chiana, which drains to the Tiber
-   today, is routed to the Arno, and the basin comes out a few percent bigger than the official
-   sub-basins.
-3. **The same script traces the Arno.** I start at the spring on Monte Falterona and follow
-   `NEXT_DOWN` reach by reach until it reaches the sea, then measure the length in EPSG:32632 (UTM
-   zone 32N), which keeps distances true across Tuscany. I do not start at the mouth and follow the
-   biggest branch upstream: in HydroRIVERS that path turns south at Arezzo into the Val di Chiana,
-   because in the data the Chiana drains more land than the upper Arno does.
-4. **`maps/prepare.py` turns the raw data into small layers for the browser.** It cuts the DEM into
-   Terrarium raster-DEM tiles in Web Mercator (elevation packed into the colour of a PNG, which
-   MapLibre decodes into 3D terrain), draws contours every 100 m, splits the rivers into those
-   upstream and downstream of the bridge, each with its distance to Florence along the network,
-   and writes a smoothed Arno for close views. The smoothed line is for display only and never
-   goes into a figure. The script prints how far it strays from the raw line.
-5. **The viewer (`maps/index.html`, `maps/main.js`, `maps/ui.js`) is MapLibre GL JS with 3D
-   terrain.** Click anywhere in the basin and it traces a drop of rain along `NEXT_DOWN` to Ponte
-   Vecchio. "Replay the rivers" grows the network from the headwaters towards the bridge, the
-   farthest reaches first.
+1. **The data: rivers that know where they drain.** [`data/download.py`](https://github.com/LaurenzThiele/Atlas-Lab/blob/main/florence-rain-1966/data/download.py)
+   downloads HydroBASINS (level 12, the finest drainage units) and HydroRIVERS from HydroSHEDS,
+   plus nine Copernicus DEM tiles for the relief, and writes `data/raw/sources.json` with each
+   file's licence, credit, download date, size and SHA-256, so you can tell whether your rebuild
+   starts from the same data. The field that makes this map possible is `NEXT_DOWN`: every basin
+   unit and every river reach carries the ID of the one it drains into. The whole drainage network
+   is a graph you can walk, with no GIS overlay at all.
+
+2. **Walking the graph upstream from Ponte Vecchio.** [`data/key_figures.py`](https://github.com/LaurenzThiele/Atlas-Lab/blob/main/florence-rain-1966/data/key_figures.py)
+   finds the unit that holds the bridge, then flips `NEXT_DOWN` into "who drains into me" and
+   walks upstream: every unit that drains into one already found is added, until nothing new turns
+   up. The 33 units it finds are the basin. I dissolve them and measure the area in EPSG:3035,
+   which is equal-area, so a square metre on the map is a square metre on the ground.
+
+   ```python
+       found = {start_id}
+       queue = [start_id]
+       while queue:
+           current = queue.pop()
+           for feeder in feeders.get(current, []):
+               if feeder not in found:
+                   found.add(feeder)
+                   queue.append(feeder)
+       return found
+   ```
+
+   [data/key_figures.py, lines 114 to 122](https://github.com/LaurenzThiele/Atlas-Lab/blob/main/florence-rain-1966/data/key_figures.py#L114-L122)
+
+   The same graph traces the Arno, this time downstream: I start at the spring on Monte Falterona
+   and follow `NEXT_DOWN` reach by reach to the sea, then measure the length in EPSG:32632 (UTM
+   zone 32N), which keeps distances true across Tuscany. Two data quirks are worth knowing. The
+   90 m radar elevation behind HydroSHEDS cannot see the man-made divide in the flat Val di
+   Chiana, so part of the Chiana, which drains to the Tiber today, is routed to the Arno, and the
+   basin comes out a few percent bigger than the official sub-basins. And following the biggest
+   branch upstream from the mouth would turn south at Arezzo into the Val di Chiana, because in the
+   data the Chiana drains more land than the upper Arno; that is why I trace from the spring.
+
+3. **Growing the rivers.** Every reach in HydroRIVERS knows the area that drains through it
+   (`UPLAND_SKM`). In [`maps/main.js`](https://github.com/LaurenzThiele/Atlas-Lab/blob/main/florence-rain-1966/maps/main.js) the width and the colour of each river
+   follow the square root of that area: a river's width on the ground grows roughly with the
+   square root of what it drains, so small streams stay hairlines and the Arno swells towards
+   Florence, deepening from Arno blue to the dark flood blue as the water gathers.
+
+   ```javascript
+   const RIVER_COLOR = [
+     "interpolate",
+     ["linear"],
+     ["sqrt", ["get", "UPLAND_SKM"]],
+     Math.sqrt(RIVER_MIN_AREA_KM2),
+     ARNO_BLU,
+     Math.sqrt(RIVER_MAX_AREA_KM2),
+     PIENA,
+   ];
+   ```
+
+   [maps/main.js, lines 150 to 158](https://github.com/LaurenzThiele/Atlas-Lab/blob/main/florence-rain-1966/maps/main.js#L150-L158)
+
+   "Replay the rivers" uses the distance of each reach to the bridge along the network: the
+   farthest reaches appear first and the network grows towards Florence. Click anywhere in the
+   basin and the map traces a drop of rain along `NEXT_DOWN` to Ponte Vecchio.
+
+4. **The look: a printed relief atlas.** The whole style is written by hand in
+   [`maps/main.js`](https://github.com/LaurenzThiele/Atlas-Lab/blob/main/florence-rain-1966/maps/main.js), with no default style underneath. The relief is MapLibre's
+   3D terrain with a sepia hillshade, lit from the north-west and fixed to the map, so turning the
+   map turns the model and not the sun. Contours every 100 m are drawn in ink, the basin is a
+   halftone dot screen like the grey tones of a 1960s newspaper, and the page lies under a paper
+   grain. `maps/prepare.py` draws both textures itself, the paper grain from a fixed seed, so no
+   texture image comes from anywhere else.
+
+5. **Making it light.** The raw data takes 929.7 MB in `data/raw/`. [`maps/prepare.py`](https://github.com/LaurenzThiele/Atlas-Lab/blob/main/florence-rain-1966/maps/prepare.py)
+   turns it into layers for the browser: the terrain goes into one PMTiles archive (Terrarium
+   heights in lossless WebP, cut to the map's extent and to the zooms it uses), the contours into
+   a second one as vector tiles simplified per zoom, and the basin and rivers into small GeoJSON
+   files that keep only the fields they need. A PMTiles file keeps a directory of its tiles at the
+   front, so the browser reads it with HTTP range requests and fetches only the tiles in view,
+   from a static host with no tile server. The map's start view transfers 2.6 MB (as GitHub Pages
+   serves it, cache off). The smoothed Arno for close-ups loads only when you zoom in, and the
+   fonts are cut down to the characters the map shows by `maps/fonts.mjs`.
 
 ## Run it yourself
 
@@ -137,17 +188,19 @@ data, so nothing is lost when a layer is left out.
   distribution and adaptation, as long as the notice in the table goes with it, plus this
   sentence: "The organisations in charge of the Copernicus programme by law or by delegation do
   not incur any liability for any use of the Copernicus WorldDEM-30". This project is not endorsed
-  by the Copernicus programme. The terrain tiles are left out only because of their size:
-  thousands of small files would bloat the history.
+  by the Copernicus programme. The two tile archives, `terrain.pmtiles` and `contours.pmtiles`,
+  are left out only because they are binary build output that would bloat the history with every
+  rebuild.
 - **Made here, from no source data:** `key_figures.json`, `meta.json` and the two textures
-  (`halftone.png`, `paper.png`, drawn by `prepare.py` from a fixed seed).
+  (`halftone.png`, and the paper grain as `paper.png` and `paper.webp`, drawn by `prepare.py`
+  from a fixed seed).
 
 ## Folder layout
 
 ```
 florence-rain-1966/
   pyproject.toml, uv.lock          Python 3.12 environment (uv)
-  package.json, package-lock.json  MapLibre, Vite and Playwright
+  package.json, package-lock.json  MapLibre, PMTiles, Vite and Playwright
   data/
     download.py                    downloads the raw data and writes raw/sources.json
     key_figures.py                 computes the key figures
@@ -158,6 +211,8 @@ florence-rain-1966/
     index.html, ui.js, style.css   the page around the map
     main.js                        the map and its API
     vite.config.js                 dev server and build
+    fonts.mjs                      cuts the fonts down to the characters the map shows
+    fonts/                         those fonts, their stylesheet and their licences (SIL OFL)
     snapshot.mjs                   writes docs/snapshot.png
     public/                        tab icons
     layers/                        prepared layers (only some are in the repo, see above)
