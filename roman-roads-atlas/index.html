@@ -11,8 +11,8 @@
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="favicon-32.png" sizes="32x32" />
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-    <script type="module" crossorigin src="./assets/index-Bjsqt8dv.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-DDuEHlRw.css">
+    <script type="module" crossorigin src="./assets/index-CH71OdAP.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-DX0sL5tF.css">
   </head>
   <body>
     <div id="app">
@@ -59,11 +59,16 @@
           <p><b id="lede-total"></b> of Roman road, reaching from Britain to Egypt.</p>
         </header>
 
+        <!-- The click note: a cartouche tied to its road by one pen stroke, with a tick across each
+             end of the road. ui.js fills and places it; the live region repeats its words. -->
         <svg id="leader" class="ui-only" aria-hidden="true">
-          <line />
-          <circle r="5" />
+          <line class="tick" />
+          <line class="tick" />
+          <path class="pen" />
+          <circle class="dot" r="2.5" />
         </svg>
-        <aside id="annotation" class="ui-only" aria-live="polite" hidden></aside>
+        <aside id="annotation" class="ui-only" aria-hidden="true" hidden></aside>
+        <p id="annotation-live" class="ui-only visually-hidden" aria-live="polite"></p>
 
         <div id="foot-left" class="ui-only">
           <!-- The one instruction on the map: what a click does, then the gestures. Always shown. -->
