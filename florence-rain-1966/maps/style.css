@@ -389,10 +389,13 @@ body {
   stroke: none;
 }
 
-/* The annotation: a leader from the feature to a note set straight on the map. */
+/* The click note is a flood plaque. On walls all over Florence, small marble plaques mark how high
+   the water stood on 4 November 1966. This one hangs on a plumb line from the point the reader
+   clicked: a Carta dot ringed in Cotto on the reach, a level tick across the line there, and a
+   framed plaque with a water line across it. Square corners, two thin rules, no shadow. */
 #leader {
   position: fixed;
-  z-index: 16;
+  z-index: 17;
   left: 0;
   top: 0;
   width: 100vw;
@@ -401,62 +404,114 @@ body {
 }
 
 #leader line {
-  stroke: var(--leader, var(--inchiostro));
+  stroke: var(--inchiostro);
   stroke-width: 1;
 }
 
 #anchor {
   position: fixed;
   z-index: 16;
+  box-sizing: border-box;
   width: 12px;
   height: 12px;
   margin: -6px 0 0 -6px;
-  border: 2px solid var(--highlight);
+  background: var(--carta);
+  border: 2.5px solid var(--cotto);
   border-radius: 50%;
   pointer-events: none;
 }
 
+/* Two 1 px rules 3 px apart: the outer one on the plaque, the inner one on its panel. */
 #annotation {
   position: fixed;
-  z-index: 16;
-  width: 240px;
-  padding: 2px 0 2px 12px;
-  border-left: 1px solid var(--leader, var(--inchiostro));
+  z-index: 17;
+  box-sizing: border-box;
+  width: 220px;
+  padding: 3px;
+  background: var(--carta);
+  border: 1px solid var(--inchiostro);
   pointer-events: none;
-  font-size: 14px;
-  line-height: 1.35;
+  text-align: center;
+  color: var(--inchiostro);
+  font-variant-ligatures: none;
 }
 
-#annotation.flip {
-  padding: 2px 12px 2px 0;
-  border-left: 0;
-  border-right: 1px solid var(--leader, var(--inchiostro));
+#annotation .plaque-inner {
+  padding: 12px 14px 11px;
+  border: 1px solid var(--inchiostro);
 }
 
-/* The note has no wash behind it. The same thin paper halo as the place names keeps its letters
-   clear of a contour or a river that runs underneath. */
-#annotation {
-  text-shadow: var(--paper-halo);
+#annotation .plaque-name {
+  margin: 0;
+  font: italic 400 21px/1.15 var(--display);
 }
 
-#annotation h3 {
-  margin: 0 0 2px;
-  font: italic 400 18px/1.2 var(--display);
+/* The water line: 18 px in from each side of the inner rule, which is 4 px more than the padding. */
+#annotation .waterline {
+  display: block;
+  margin: 8px 4px 7px;
+  border-top: 2px solid var(--arno-blu);
 }
 
 #annotation p {
   margin: 0;
 }
 
-#annotation .source {
-  margin-top: 4px;
-  font-size: 12px;
+#annotation .plaque-figure {
+  font: 400 17px/1.2 var(--readout);
+  color: var(--arno-blu);
+  white-space: nowrap;
+}
+
+#annotation .plaque-figure .gap {
+  font-family: var(--text);
+}
+
+#annotation .plaque-words {
+  font: 400 15px/1.25 var(--display);
+}
+
+/* 5 px between the two figures. */
+#annotation .plaque-words + .plaque-figure {
+  margin-top: 5px;
+}
+
+/* Outside the basin there is no water line, only one sentence under the name. */
+#annotation .plaque-words.single {
+  margin-top: 8px;
+}
+
+#annotation .plaque-source {
+  margin-top: 8px;
+  font: 400 12.5px/1.3 var(--text);
   color: var(--quiet);
 }
 
-#annotation .num {
-  font-family: var(--readout);
-  font-size: 15px;
+/* It opens with a short fade, ease out. Readers who asked for less motion get it at once. */
+.note-in {
+  animation: note-in 150ms ease-out;
+}
+
+@keyframes note-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .note-in {
+    animation: none;
+  }
+}
+
+/* Read by screen readers, not drawn. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 /* The sheet: one continuous column of solid paper, with no tabs and no cards inside it. */
@@ -854,10 +909,6 @@ dialog form.close button {
   #buttons {
     right: 8px;
     bottom: calc(30% + 8px);
-  }
-
-  #annotation {
-    width: 220px;
   }
 
   #sheet {

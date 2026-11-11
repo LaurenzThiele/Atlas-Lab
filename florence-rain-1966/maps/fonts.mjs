@@ -1,10 +1,10 @@
 /**
  * Cut the map's fonts down to the characters it actually shows.
  *
- * What it does: reads the five font files the map uses (Bodoni Moda italic and bold, Courier
- * Prime, Source Serif 4 regular and semibold) from node_modules/@fontsource, keeps only printable
- * ASCII plus every other character that appears in the page, its scripts and the layers it shows
- * as text, and writes them as small WOFF2 files with one stylesheet.
+ * What it does: reads the six font files the map uses (Bodoni Moda italic, regular and bold,
+ * Courier Prime, Source Serif 4 regular and semibold) from node_modules/@fontsource, keeps only
+ * printable ASCII plus every other character that appears in the page, its scripts and the layers
+ * it shows as text, and writes them as small WOFF2 files with one stylesheet.
  * Reads:  node_modules/@fontsource/*, maps/index.html, maps/ui.js, maps/main.js,
  *         maps/layers/key_figures.json, maps/layers/points.geojson, maps/layers/meta.json
  * Writes: maps/fonts/*.woff2, maps/fonts/fonts.css, maps/fonts/LICENSE-*.txt (the fonts' OFL)
@@ -29,6 +29,7 @@ const FONTSOURCE = resolve(ROOT, "node_modules", "@fontsource");
 // Every face the map uses, by the family name the stylesheets ask for.
 const FACES = [
   { family: "Bodoni Moda", pkg: "bodoni-moda", weight: 400, style: "italic" },
+  { family: "Bodoni Moda", pkg: "bodoni-moda", weight: 400, style: "normal" },
   { family: "Bodoni Moda", pkg: "bodoni-moda", weight: 700, style: "normal" },
   { family: "Courier Prime", pkg: "courier-prime", weight: 400, style: "normal" },
   { family: "Source Serif 4", pkg: "source-serif-4", weight: 400, style: "normal" },

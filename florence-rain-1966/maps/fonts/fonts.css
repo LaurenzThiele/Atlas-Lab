@@ -10,6 +10,14 @@
 @font-face {
   font-family: "Bodoni Moda";
   font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./bodoni-moda-400-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Bodoni Moda";
+  font-style: normal;
   font-weight: 700;
   font-display: swap;
   src: url("./bodoni-moda-700-normal.woff2") format("woff2");

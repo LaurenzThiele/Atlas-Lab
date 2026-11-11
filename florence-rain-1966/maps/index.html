@@ -31,20 +31,25 @@
       </p>
     </header>
 
-    <svg id="leader" aria-hidden="true" hidden><line /></svg>
+    <!-- The click note, a flood plaque: the dot on the reach, its plumb line and the plaque. The
+         plaque is hidden from screen readers; the live region below says its words once. -->
     <span id="anchor" aria-hidden="true" hidden></span>
-    <div id="annotation" role="status" hidden></div>
+    <svg id="leader" aria-hidden="true" hidden><line class="plumb" /><line class="tick" /></svg>
+    <div id="annotation" aria-hidden="true" hidden></div>
+    <p id="note-live" class="visually-hidden" aria-live="polite"></p>
 
     <div id="foot">
       <!-- The one hint line: what a click does, then the gestures. Touch screens get their own words. -->
       <p id="hint">
         <span class="wide">
-          <i>Click</i> anywhere in the basin to trace a drop down to Ponte Vecchio in Florence.
+          <i>Click</i> a river to trace its rain down to Ponte Vecchio and see how much land drains
+          past it.
           <i>Drag</i> to move, <i>Ctrl + drag</i> or <i>right-drag</i> to tilt and turn,
           <i>scroll</i> to zoom.
         </span>
         <span class="narrow">
-          <i>Tap</i> anywhere in the basin to trace a drop down to Ponte Vecchio in Florence.
+          <i>Tap</i> a river to trace its rain down to Ponte Vecchio and see how much land drains past
+          it.
           <i>Drag</i> to move, <i>two fingers</i> to tilt and turn, <i>pinch</i> to zoom.
         </span>
       </p>

@@ -21,7 +21,7 @@ import { createMap, setLayers, setTime } from "./main.js";
 // After main.js, so that my rules come after MapLibre's own stylesheet.
 import "./style.css";
 
-const COTTO = "#9E3B26";
+const PIENA = "#1E3550";
 const PONTE_VECCHIO = [11.2531, 43.768];
 const SMOOTH_ARNO_FROM_ZOOM = 11; // the zoom at which the dot stops being "Firenze" and is the bridge
 const START_PITCH = 55;
@@ -40,23 +40,8 @@ const SHEET_CLOSED_SHARE = 0.3; // the bottom sheet's height when closed, as in 
 // A tooltip waits a moment under the mouse, so sweeping across the strip does not flash four labels.
 const TIP_DELAY_MS = 400;
 const TIP_GAP_PX = 6;
-// Where a note may go, tried in this order: east first, then south-east, then the rest.
-const NOTE_DIRECTIONS = [
-  [1, 0.3],
-  [1, 1],
-  [0.3, 1],
-  [1, -0.6],
-  [-1, 0.3],
-  [-1, 1],
-  [0, 1],
-  [-1, -0.6],
-  [0, -1],
-];
-const NOTE_DISTANCES_PX = [60, 100, 150, 210, 280, 360, 450];
-const NOTE_MARGIN_PX = 8;
 
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-const noHover = window.matchMedia("(hover: none)");
 const isPhone = window.matchMedia("(max-width: 900px)");
 
 const $ = (selector) => document.querySelector(selector);
@@ -181,10 +166,33 @@ function nearestReach(point, reaches) {
   return bestReach;
 }
 
+/** The point on a line nearest to a click, and the index of the segment it lies on. */
+function nearestPointOnLine(point, coordinates) {
+  const [px0, py0] = planarKm(point);
+  let best = { distance: Infinity, index: 0, coordinates: coordinates[0] };
+  for (let i = 1; i < coordinates.length; i++) {
+    const [ax, ay] = planarKm(coordinates[i - 1]);
+    const [bx, by] = planarKm(coordinates[i]);
+    const dx = bx - ax;
+    const dy = by - ay;
+    const lengthSq = dx * dx + dy * dy;
+    const t =
+      lengthSq === 0 ? 0 : Math.max(0, Math.min(1, ((px0 - ax) * dx + (py0 - ay) * dy) / lengthSq));
+    const distance = Math.hypot(px0 - (ax + t * dx), py0 - (ay + t * dy));
+    if (distance < best.distance) {
+      // planarKm is linear in longitude and latitude, so t carries back to degrees unchanged.
+      const [alng, alat] = coordinates[i - 1];
+      const [blng, blat] = coordinates[i];
+      const snapped = [alng + (blng - alng) * t, alat + (blat - alat) * t];
+      best = { distance, index: i - 1, coordinates: snapped };
+    }
+  }
+  return best;
+}
+
 /** Follow NEXT_DOWN from one reach to the bridge. The river network is a graph, not a picture. */
-function pathToBridge(start, startPoint, reachById) {
-  const startCoords = start.geometry.coordinates;
-  let coordinates = startCoords.slice(nearestVertexIndex(startPoint, startCoords));
+function pathToBridge(start, snapped, reachById) {
+  let coordinates = [snapped.coordinates, ...start.geometry.coordinates.slice(snapped.index + 1)];
   let reach = start;
   while (reach.properties.dist_to_florence_km > 0) {
     reach = reachById.get(reach.properties.NEXT_DOWN);
@@ -225,22 +233,32 @@ function reachesAt(point) {
   );
 }
 
-// ---- Annotation ----------------------------------------------------------------------------------
+// ---- Annotation: the flood plaque ----------------------------------------------------------------
 
-// A pinned note (a traced drop) stays until the reader closes it. A hover note lies on top of it for
-// as long as the mouse stays on a river.
-let pinnedNote = null;
-let hoverNote = null;
+// On walls all over Florence, small marble plaques mark how high the water stood on 4 November
+// 1966. The note takes their form: a framed plaque with a water line across it, hung on a plumb
+// line from the point the reader clicked. It opens only on a click, never on hover.
+const PLAQUE_SOURCE_REACH = "Source: HydroRIVERS v1.0, WWF, Lehner and Grill (2013)";
+const PLAQUE_SOURCE_BASIN = "Source: HydroBASINS level 12 v1c, WWF, Lehner and Grill (2013)";
+const PLUMB_MIN_PX = 40;
+const PLUMB_MAX_PX = 90;
+const PLUMB_STEP_PX = 10;
+const TICK_PX = 12;
+const MARK_DOT_RADIUS_PX = 6; // the 12 px dot at the snapped point
+const MARK_WIDTH_SCALE = 2.5; // the clicked reach, drawn at 2.5 times its own width
+const NOTE_MARGIN_PX = 8;
 
-function currentNote() {
-  return hoverNote ?? pinnedNote;
-}
+// One note at a time. It stays until the reader closes it.
+let openNote = null;
+let lastSlot = null;
 
-function drawSelected(coordinates) {
+/** The clicked reach, drawn again in Piena on top of the network. */
+function drawSelected(reach) {
+  const { UPLAND_SKM, main_stem } = reach?.properties ?? {};
   map.getSource("selected").setData({
     type: "FeatureCollection",
-    features: coordinates
-      ? [{ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates } }]
+    features: reach
+      ? [{ type: "Feature", properties: { UPLAND_SKM, main_stem }, geometry: reach.geometry }]
       : [],
   });
 }
@@ -254,48 +272,67 @@ function setDot(coordinates) {
   });
 }
 
-/** Set the note's text once. placeNote() then moves it with the map, with no need to rebuild it. */
-function fillNote(note) {
-  const element = $("#annotation");
-  element.textContent = "";
-  if (note.name) {
-    const name = document.createElement("h3");
-    name.textContent = note.name;
-    element.append(name);
-  }
-  const body = document.createElement("p");
-  for (const part of note.text) {
-    if (part.num) {
-      const number = document.createElement("span");
-      number.className = "num";
-      number.textContent = part.num;
-      body.append(number);
-    } else {
-      body.append(part);
-    }
-  }
-  element.append(body);
-  if (note.source) {
-    const source = document.createElement("p");
-    source.className = "source";
-    source.textContent = note.source;
-    element.append(source);
-  }
-  document.body.style.setProperty("--leader", note.leader ?? "");
+function element(tag, className, text) {
+  const node = document.createElement(tag);
+  node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
 }
 
-/** Screen rectangles a note must not cover: place names, the title, the foot, the buttons. */
+/**
+ * A figure line in Courier Prime, the typewriter of the 1966 reports. A space in a monospace face
+ * is as wide as a letter, so the spaces between number, unit and words are set in the text face.
+ */
+function plaqueFigure(text) {
+  const line = element("p", "plaque-figure");
+  text.split(" ").forEach((word, index) => {
+    if (index > 0) line.append(element("span", "gap", " "));
+    line.append(word);
+  });
+  return line;
+}
+
+/** Set the plaque's text once. placeNote() then moves it with the map without rebuilding it. */
+function fillNote(note) {
+  const plaque = $("#annotation");
+  plaque.textContent = "";
+  const inner = element("div", "plaque-inner");
+  inner.append(element("h3", "plaque-name", note.name));
+  if (note.kind === "reach") {
+    inner.append(
+      element("span", "waterline"),
+      plaqueFigure(note.area),
+      element("p", "plaque-words", "of hills drain past here"),
+      plaqueFigure(note.distance),
+      element("p", "plaque-words", "to Ponte Vecchio"),
+    );
+  } else {
+    inner.append(element("p", "plaque-words single", "This rain does not reach Florence."));
+  }
+  inner.append(element("p", "plaque-source", note.source));
+  plaque.append(inner);
+  // The plaque itself is hidden from screen readers: this polite live region says the same words
+  // once, as sentences.
+  $("#note-live").textContent = note.spoken;
+}
+
+/**
+ * Screen rectangles a note should not cover, each with its cost. The hint line and the buttons
+ * must stay clear. The title and the place names are avoided too, but on a short phone map, where
+ * nothing else fits, the plaque may lie over the title rather than over the controls.
+ */
 function noteObstacles() {
-  const rects = [];
+  const obstacles = [];
   for (const text of document.querySelectorAll(".map-label .text")) {
     if (text.style.opacity === "0") continue;
-    rects.push(text.getBoundingClientRect());
+    obstacles.push({ rect: text.getBoundingClientRect(), cost: 30 });
   }
-  for (const selector of ["#title", "#foot", "#buttons", "#sheet-open"]) {
-    const element = $(selector);
-    if (element && !element.hidden) rects.push(element.getBoundingClientRect());
+  const panels = [["#title", 30], ["#foot", 100], ["#buttons", 100], ["#sheet-open", 100]];
+  for (const [selector, cost] of panels) {
+    const node = $(selector);
+    if (node && !node.hidden) obstacles.push({ rect: node.getBoundingClientRect(), cost });
   }
-  return rects.filter((rect) => rect.width > 0 && rect.height > 0);
+  return obstacles.filter(({ rect }) => rect.width > 0 && rect.height > 0);
 }
 
 function overlaps(a, b, padPx) {
@@ -307,165 +344,196 @@ function overlaps(a, b, padPx) {
   );
 }
 
+/** The part of the window the note may use: the map, minus the bottom sheet on a phone. */
+function noteArea() {
+  const box = map.getContainer().getBoundingClientRect();
+  const area = { left: box.left, right: box.right, top: box.top, bottom: box.bottom };
+  if (isPhone.matches) area.bottom = Math.min(area.bottom, $("#sheet").getBoundingClientRect().top);
+  return area;
+}
+
 /**
- * How bad a place for the note would be. Zero means open paper: inside the map, outside the basin,
- * and clear of every name, of the panels and of the river the note is about.
+ * Every place the plaque may hang, in the order I prefer them: straight above the point on the
+ * shortest plumb line, then longer lines, then below the point (near the top edge). On a phone
+ * there may be no room beside the feature, so two more places sit at the foot or the top of the
+ * map, with no plumb line.
  */
-function slotCost(rect, area, obstacles, pathPoints, anchorX, anchorY) {
+function noteSlots() {
+  const slots = [];
+  for (const side of ["above", "below"]) {
+    for (let lengthPx = PLUMB_MIN_PX; lengthPx <= PLUMB_MAX_PX; lengthPx += PLUMB_STEP_PX) {
+      slots.push({ side, lengthPx });
+    }
+  }
+  if (isPhone.matches) slots.push({ dock: "bottom" }, { dock: "top" });
+  return slots;
+}
+
+function slotRect(slot, x, y, width, height, area) {
+  const clamp = (value, low, high) => Math.min(Math.max(value, low), Math.max(low, high));
+  const centredLeft = slot.dock ? (area.left + area.right) / 2 - width / 2 : x - width / 2;
+  const left = clamp(centredLeft, area.left + NOTE_MARGIN_PX, area.right - NOTE_MARGIN_PX - width);
+  let top;
+  if (slot.dock === "bottom") {
+    const floor = Math.min(
+      area.bottom,
+      $("#foot").getBoundingClientRect().top,
+      $("#buttons").getBoundingClientRect().top,
+    );
+    top = floor - NOTE_MARGIN_PX - height;
+  } else if (slot.dock === "top") {
+    top = $("#title").getBoundingClientRect().bottom + NOTE_MARGIN_PX;
+  } else {
+    top = slot.side === "above" ? y - slot.lengthPx - height : y + slot.lengthPx;
+  }
+  return { left, top, right: left + width, bottom: top + height, shifted: left !== centredLeft };
+}
+
+/** How bad a place would be. Zero means the plaque hangs straight and covers nothing. */
+function slotCost(slot, rect, area, obstacles, featurePoints) {
   let cost = 0;
-  if (
-    rect.left < area.left + NOTE_MARGIN_PX ||
-    rect.right > area.right - NOTE_MARGIN_PX ||
-    rect.top < area.top + NOTE_MARGIN_PX ||
-    rect.bottom > area.bottom - NOTE_MARGIN_PX
-  ) {
+  if (rect.top < area.top + NOTE_MARGIN_PX || rect.bottom > area.bottom - NOTE_MARGIN_PX) {
     cost += 1000;
   }
-  for (const obstacle of obstacles) if (overlaps(rect, obstacle, 6)) cost += 100;
-  // The feature itself stays in view, with room for the leader.
-  if (overlaps(rect, { left: anchorX, right: anchorX, top: anchorY, bottom: anchorY }, 16)) {
-    cost += 200;
-  }
-  for (const [x, y] of pathPoints) {
-    if (x > rect.left - 6 && x < rect.right + 6 && y > rect.top - 6 && y < rect.bottom + 6) {
-      cost += 50;
+  for (const obstacle of obstacles) if (overlaps(rect, obstacle.rect, 6)) cost += obstacle.cost;
+  // Never over the clicked feature: the dot and the reach it was snapped to.
+  for (const [x, y] of featurePoints) {
+    if (x > rect.left - 4 && x < rect.right + 4 && y > rect.top - 4 && y < rect.bottom + 4) {
+      cost += 200;
       break;
     }
   }
-  // Nine sample points across the note, each asked whether it lies on the basin.
-  for (const fx of [0, 0.5, 1]) {
-    for (const fy of [0, 0.5, 1]) {
-      const x = rect.left + fx * (rect.right - rect.left) - area.left;
-      const y = rect.top + fy * (rect.bottom - rect.top) - area.top;
-      if (pointInBasin(map.unproject([x, y]), basin)) cost += 10;
-    }
+  if (rect.shifted) cost += 2; // slid sideways near an edge: the plumb line meets it off centre
+  if (slot.dock) cost += 20;
+  if (slot.side === "below") cost += 1;
+  if (slot.lengthPx) cost += (slot.lengthPx - PLUMB_MIN_PX) / 100;
+  // The last place wins a tie, so the plaque does not jump while the map moves.
+  if (lastSlot && slot.side === lastSlot.side && slot.lengthPx === lastSlot.lengthPx &&
+      slot.dock === lastSlot.dock) {
+    cost -= 0.5;
   }
   return cost;
 }
 
-/**
- * The note's rectangle for one direction and distance from the feature. It is slid back inside the
- * map when it would stick out, which on a narrow phone is what most places would otherwise do.
- */
-function slotRect(x, y, direction, distancePx, width, height, area) {
-  const wantedLeft =
-    direction[0] >= 0 ? x + direction[0] * distancePx : x + direction[0] * distancePx - width;
-  const wantedTop = y + direction[1] * distancePx - height / 2;
-  const clamp = (value, low, high) => Math.min(Math.max(value, low), Math.max(low, high));
-  const left = clamp(wantedLeft, area.left + NOTE_MARGIN_PX, area.right - NOTE_MARGIN_PX - width);
-  const top = clamp(wantedTop, area.top + NOTE_MARGIN_PX, area.bottom - NOTE_MARGIN_PX - height);
-  // The rule goes on the side of the note that faces the feature.
-  const ruleRight = left + width / 2 < x;
-  return { left, top, right: left + width, bottom: top + height, ruleRight };
-}
-
-let lastSlot = null;
-
 function placeNote() {
-  const note = currentNote();
-  const element = $("#annotation");
-  const leader = $("#leader");
-  const anchor = $("#anchor");
-  // The leader is an SVG element, which has no hidden property, so I set the attribute itself.
-  if (!note) {
-    element.hidden = true;
-    leader.setAttribute("hidden", "");
-    anchor.hidden = true;
+  const plaque = $("#annotation");
+  const plumb = $("#leader");
+  const dot = $("#anchor");
+  // The plumb line is an SVG element, which has no hidden property, so I set the attribute itself.
+  if (!openNote) {
+    plaque.hidden = true;
+    plumb.setAttribute("hidden", "");
+    dot.hidden = true;
     lastSlot = null;
     return;
   }
-  element.hidden = false;
-  leader.removeAttribute("hidden");
-  anchor.hidden = false;
-  const area = map.getContainer().getBoundingClientRect();
-  const point = map.project(note.lngLat);
-  const x = point.x + area.left;
-  const y = point.y + area.top;
-  const { width, height } = element.getBoundingClientRect();
+  plaque.hidden = false;
+  plumb.removeAttribute("hidden");
+  // Outside the basin there is no reach to mark: the plumb line and its tick mark the point alone.
+  dot.hidden = openNote.kind !== "reach";
+  const box = map.getContainer().getBoundingClientRect();
+  const point = map.project(openNote.lngLat);
+  const x = point.x + box.left;
+  const y = point.y + box.top;
+  dot.style.left = `${x}px`;
+  dot.style.top = `${y}px`;
 
-  // I set the note on open paper beside the basin, never over it, so it needs no wash behind it.
-  // The last good place is tried first, so the note does not jump while the map moves.
+  const area = noteArea();
+  const { width, height } = plaque.getBoundingClientRect();
   const obstacles = noteObstacles();
-  const pathPoints = (note.path ?? [])
-    .filter((_, index, all) => index % 3 === 0 || index === all.length - 1)
-    .map((coordinates) => {
-      const projected = map.project(coordinates);
-      return [projected.x + area.left, projected.y + area.top];
-    });
-  const slots = [];
-  if (lastSlot) slots.push(lastSlot);
-  for (const distancePx of NOTE_DISTANCES_PX) {
-    for (const direction of NOTE_DIRECTIONS) slots.push({ direction, distancePx });
+  const featurePoints = [[x, y]];
+  for (const coordinates of openNote.reach?.geometry.coordinates ?? []) {
+    const projected = map.project(coordinates);
+    featurePoints.push([projected.x + box.left, projected.y + box.top]);
   }
   let best = null;
-  for (const slot of slots) {
-    const rect = slotRect(x, y, slot.direction, slot.distancePx, width, height, area);
-    const cost = slotCost(rect, area, obstacles, pathPoints, x, y);
+  for (const slot of noteSlots()) {
+    const rect = slotRect(slot, x, y, width, height, area);
+    const cost = slotCost(slot, rect, area, obstacles, featurePoints);
     if (!best || cost < best.cost) best = { slot, rect, cost };
-    if (cost === 0) break;
   }
   lastSlot = best.slot;
-  const { rect } = best;
-  element.classList.toggle("flip", rect.ruleRight);
-  element.style.left = `${rect.left}px`;
-  element.style.top = `${rect.top}px`;
-  anchor.style.left = `${x}px`;
-  anchor.style.top = `${y}px`;
+  const { rect, slot } = best;
+  // When the reader pans the point near or past the edge, no place fits. The plaque then stays
+  // inside the map, against the edge, rather than following the point off screen.
+  if (best.cost >= 1000) {
+    const top = Math.min(
+      Math.max(rect.top, area.top + NOTE_MARGIN_PX),
+      area.bottom - NOTE_MARGIN_PX - height,
+    );
+    rect.bottom += top - rect.top;
+    rect.top = top;
+  }
+  plaque.style.left = `${rect.left}px`;
+  plaque.style.top = `${rect.top}px`;
 
-  // The leader runs from the feature to the rule on the side of the note that faces it.
-  const line = leader.querySelector("line");
+  // The plumb line drops straight from the plaque to the point, and a short level tick crosses it
+  // there, like the line cut under a flood plaque. A plaque docked on a phone hangs on nothing.
+  const [line, tick] = plumb.querySelectorAll("line");
+  const pointInArea = x >= area.left && x <= area.right && y >= area.top && y <= area.bottom;
+  line.style.display = slot.dock || !pointInArea ? "none" : "";
+  tick.style.display = pointInArea ? "" : "none";
+  const startY = openNote.kind === "reach" ? MARK_DOT_RADIUS_PX : 0;
+  const above = slot.side === "above";
   line.setAttribute("x1", String(x));
-  line.setAttribute("y1", String(y));
-  line.setAttribute("x2", String(rect.ruleRight ? rect.right : rect.left));
-  line.setAttribute("y2", String(Math.min(rect.bottom - 4, Math.max(rect.top + 4, y))));
+  line.setAttribute("x2", String(x));
+  line.setAttribute("y1", String(above ? y - startY : y + startY));
+  line.setAttribute("y2", String(above ? rect.bottom : rect.top));
+  tick.setAttribute("x1", String(x - TICK_PX / 2));
+  tick.setAttribute("x2", String(x + TICK_PX / 2));
+  tick.setAttribute("y1", String(y));
+  tick.setAttribute("y2", String(y));
 }
 
-function showCurrentNote() {
-  const note = currentNote();
-  if (note) fillNote(note);
-  drawSelected(note?.path ?? null);
+/** The 150 ms fade, started again on every new note. The stylesheet drops it for reduced motion. */
+function fadeIn() {
+  for (const node of [$("#annotation"), $("#leader"), $("#anchor")]) {
+    node.classList.remove("note-in");
+    void node.getBoundingClientRect(); // a layout pass between the two, so the animation restarts
+    node.classList.add("note-in");
+  }
+}
+
+function showNote(note) {
+  openNote = note;
+  lastSlot = null;
+  fillNote(note);
+  drawSelected(note.reach ?? null);
   placeNote();
+  fadeIn();
 }
 
-function reachNote(reach, lngLat, reachById) {
-  const { UPLAND_SKM, dist_to_florence_km, main_stem, HYRIV_ID } = reach.properties;
-  const areaKm2 = Math.round(UPLAND_SKM).toLocaleString("en-US");
+function reachNote(reach, lngLat) {
+  const { UPLAND_SKM, dist_to_florence_km, main_stem, HYRIV_ID, name } = reach.properties;
+  // HydroRIVERS has no names. The one river I can name is the main stem, because I traced it.
+  const riverName =
+    typeof name === "string" && name ? name : main_stem ? "The Arno" : "This stream";
+  const area = `${Math.round(UPLAND_SKM).toLocaleString("en-US")} km²`;
   const distanceKm = Math.round(dist_to_florence_km);
-  const distanceText = distanceKm < 1 ? "Less than 1 km" : `${distanceKm} km`;
+  const distance = distanceKm < 1 ? "less than 1 km" : `about ${distanceKm} km`;
   return {
+    kind: "reach",
     id: HYRIV_ID,
-    // HydroRIVERS has no names. The one river I can name is the main stem, because I traced it.
-    name: main_stem ? "Arno" : null,
-    text: [`The rain on ${areaKm2} km² flows to this reach. ${distanceText} to Florence.`],
-    source: "Source: HydroSHEDS",
+    name: riverName,
+    area,
+    distance,
+    source: PLAQUE_SOURCE_REACH,
+    spoken:
+      `${riverName}. ${area} of hills drain past here, ${distance} to Ponte Vecchio. ` +
+      `${PLAQUE_SOURCE_REACH}.`,
     lngLat,
-    path: reachById.get(HYRIV_ID).geometry.coordinates,
+    reach,
   };
 }
 
-function setupHover(reachById) {
-  if (noHover.matches) return;
-  map.on("mousemove", (event) => {
-    const hits = reachesAt(event.point);
-    map.getCanvas().style.cursor = hits.length > 0 ? "pointer" : "";
-    if (hits.length === 0) {
-      if (hoverNote) {
-        hoverNote = null;
-        showCurrentNote();
-      }
-      return;
-    }
-    const point = [event.lngLat.lng, event.lngLat.lat];
-    const reach = nearestReach(point, hits);
-    const sameReach = hoverNote?.id === reach.properties.HYRIV_ID;
-    hoverNote = reachNote(reach, event.lngLat, reachById);
-    if (sameReach) placeNote();
-    else showCurrentNote();
-  });
-  map.getCanvas().addEventListener("mouseleave", () => {
-    hoverNote = null;
-    showCurrentNote();
-  });
+function outsideNote(lngLat) {
+  return {
+    kind: "outside",
+    name: "Outside the basin",
+    source: PLAQUE_SOURCE_BASIN,
+    spoken: `Outside the basin. This rain does not reach Florence. ${PLAQUE_SOURCE_BASIN}.`,
+    lngLat,
+  };
 }
 
 // ---- Trace a drop --------------------------------------------------------------------------------
@@ -481,42 +549,7 @@ function setupTrace(data, reachById) {
     animation = null;
   }
 
-  function traceFrom(event) {
-    const point = [event.lngLat.lng, event.lngLat.lat];
-    if (!pointInBasin(event.lngLat, data.basin)) {
-      setDot(null);
-      if (distanceToBasinKm(point, data.basin) > BASIN_CLICK_MARGIN_KM) {
-        pinnedNote = null;
-        showCurrentNote();
-        return;
-      }
-      pinnedNote = {
-        text: ["This rain does not reach Florence."],
-        lngLat: event.lngLat,
-        leader: COTTO,
-      };
-      showCurrentNote();
-      return;
-    }
-    // queryRenderedFeatures returns pieces cut at tile edges, so I look up each whole reach by ID.
-    // Far from any river the box is empty, and then the nearest reach of the whole basin decides.
-    const candidates = reachesAt(event.point).map((hit) => reachById.get(hit.properties.HYRIV_ID));
-    const start = nearestReach(point, candidates.length > 0 ? candidates : reaches);
-    const path = pathToBridge(start, point, reachById);
-    const distanceKm = Math.round(start.properties.dist_to_florence_km);
-    pinnedNote = {
-      text:
-        distanceKm < 1
-          ? ["This drop travels less than ", { num: "1" }, "\u00a0km to Ponte Vecchio."]
-          : ["This drop travels ", { num: String(distanceKm) }, "\u00a0km to Ponte Vecchio."],
-      source: "Source: HydroSHEDS",
-      lngLat: event.lngLat,
-      leader: COTTO,
-      path,
-    };
-    hoverNote = null;
-    showCurrentNote();
-
+  function traceDrop(path) {
     if (reducedMotion.matches) {
       setDot(PONTE_VECCHIO);
       return;
@@ -532,24 +565,30 @@ function setupTrace(data, reachById) {
     animation = requestAnimationFrame(step);
   }
 
+  // A click (a tap on touch) is the only thing that opens a note. A second click on the same reach,
+  // or a click far from the basin, closes it again.
   map.on("click", (event) => {
     stopAnimation();
-    // On a touch screen there is no hover. A tap on a river names it, a tap elsewhere in the basin
-    // traces a drop, and a tap while a note is open only closes that note.
-    if (noHover.matches) {
-      if (currentNote()) {
-        closeNote();
-        return;
-      }
-      const hits = reachesAt(event.point);
-      if (hits.length > 0) {
-        const point = [event.lngLat.lng, event.lngLat.lat];
-        pinnedNote = reachNote(nearestReach(point, hits), event.lngLat, reachById);
-        showCurrentNote();
-        return;
-      }
+    const point = [event.lngLat.lng, event.lngLat.lat];
+    if (!pointInBasin(event.lngLat, data.basin)) {
+      setDot(null);
+      // Just outside the edge the map answers. Further out the map is only context.
+      const far = distanceToBasinKm(point, data.basin) > BASIN_CLICK_MARGIN_KM;
+      if (far || openNote?.kind === "outside") closeNote();
+      else showNote(outsideNote(event.lngLat));
+      return;
     }
-    traceFrom(event);
+    // queryRenderedFeatures returns pieces cut at tile edges, so I look up each whole reach by ID.
+    // Far from any river the box is empty, and then the nearest reach of the whole basin decides.
+    const candidates = reachesAt(event.point).map((hit) => reachById.get(hit.properties.HYRIV_ID));
+    const start = nearestReach(point, candidates.length > 0 ? candidates : reaches);
+    if (openNote?.kind === "reach" && openNote.id === start.properties.HYRIV_ID) {
+      closeNote();
+      return;
+    }
+    const snapped = nearestPointOnLine(point, start.geometry.coordinates);
+    showNote(reachNote(start, { lng: snapped.coordinates[0], lat: snapped.coordinates[1] }));
+    traceDrop(pathToBridge(start, snapped, reachById));
   });
 
   return stopAnimation;
@@ -559,10 +598,11 @@ let stopTrace = () => {};
 
 function closeNote() {
   stopTrace();
-  pinnedNote = null;
-  hoverNote = null;
+  openNote = null;
   setDot(null);
-  showCurrentNote();
+  drawSelected(null);
+  placeNote();
+  $("#note-live").textContent = "";
 }
 
 // ---- Sheet ---------------------------------------------------------------------------------------
@@ -737,7 +777,7 @@ function setupKeyboard(fold, setOpen) {
   // Esc takes back one thing at a time: first the note, then the sheet.
   window.addEventListener("keydown", (event) => {
     if (event.key !== "Escape" || document.querySelector("dialog[open]")) return;
-    if (currentNote()) closeNote();
+    if (openNote) closeNote();
     else if (isPhone.matches) setOpen(false);
     else if (!document.body.classList.contains("sheet-folded")) fold(true);
   });
@@ -977,8 +1017,10 @@ async function start() {
     bearing: map.getBearing(),
   };
 
-  // My own two layers for this page only: the selected river or path in the highlight colour. I add
-  // them here, not in the map's style, so that a view drawn through the API never carries them.
+  // My own layer for this page only: the clicked reach, drawn again in Piena at 2.5 times its
+  // width. I add it here, not in the map's style, so that a view drawn through the API never
+  // carries it. The width is the drawn layer's own expression, scaled, so the two never disagree.
+  const widthOf = (layer) => ["*", MARK_WIDTH_SCALE, map.getPaintProperty(layer, "line-width")];
   map.addSource("selected", {
     type: "geojson",
     data: { type: "FeatureCollection", features: [] },
@@ -989,7 +1031,15 @@ async function start() {
       type: "line",
       source: "selected",
       layout: { "line-cap": "round", "line-join": "round" },
-      paint: { "line-color": COTTO, "line-width": 2.5 },
+      paint: {
+        "line-color": PIENA,
+        "line-width": [
+          "case",
+          ["to-boolean", ["get", "main_stem"]],
+          widthOf("arno_reaches"),
+          widthOf("upstream_rivers"),
+        ],
+      },
     },
     "trace_dot",
   );
@@ -1041,7 +1091,6 @@ async function start() {
   setupReplay();
   setupDialogs();
   setupTooltips();
-  setupHover(reachById);
   stopTrace = setupTrace(data, reachById);
   setupKeyboard(setupFold(), setupBottomSheet());
 
