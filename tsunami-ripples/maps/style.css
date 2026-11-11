@@ -172,31 +172,125 @@ h1 {
   font-weight: 600;
 }
 
-/* ---------- Annotation: a leader line and a note, no card. ---------- */
+/* ---------- Annotation: the seal stamp ---------- */
+/* Taken from the hanko, the red seal printed on Japanese documents. The record's strokes are
+   stamped again in shu red, a fine washi line leads to the note, and the note is bare text on the
+   globe with the date in a small square seal at its left. No box, no shadow, no tip, no cross. */
+#note-mark {
+  position: fixed;
+  z-index: 3;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: visible;
+  pointer-events: none;
+}
+
+#note-mark path {
+  fill: none;
+  stroke: var(--highlight);
+  stroke-linejoin: round;
+}
+
+#note-mark .mark-ring:nth-of-type(1) {
+  stroke-width: 1.6;
+}
+
+#note-mark .mark-ring:nth-of-type(2) {
+  stroke-width: 1.2;
+}
+
+#note-mark .mark-ring:nth-of-type(3) {
+  stroke-width: 1;
+}
+
+#note-mark #mark-column {
+  stroke-width: 1.2;
+}
+
+#note-leader {
+  stroke: rgb(241 234 219 / 80%);
+  stroke-width: 1;
+}
+
 #annotation {
   position: fixed;
   z-index: 3;
   top: 0;
   left: 0;
-  width: 240px;
-  padding: 2px 8px 4px 12px;
-  /* The one soft wash I allow: the map behind a note can be a bright coast, and the note
-     has to stay readable there. It is the background colour, without an edge. */
-  background: rgb(15 27 45 / 86%);
-  border-left: 1px solid var(--ink);
-  font-size: 13.5px;
-  pointer-events: none;
+  display: grid;
+  grid-template-columns: 66px 1fr;
+  align-items: start;
+  width: 280px;
+  color: var(--ink);
+  isolation: isolate;
 }
 
-#annotation.pinned {
-  pointer-events: auto;
+#annotation[hidden],
+#note-mark[hidden],
+#note-mark [hidden] {
+  display: none;
+}
+
+#annotation .seal {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  /* The top of the seal lines up with the top of the name's capitals. */
+  margin-top: 3px;
+  background: var(--highlight);
+  color: var(--ink);
+  font-family: var(--display);
+  line-height: 1;
+}
+
+/* The fine rule inside the seal, 5 px in from its edge, as on a carved stamp. */
+#annotation .seal::after {
+  position: absolute;
+  inset: 5px;
+  border: 1px solid var(--ink);
+  content: "";
+}
+
+#annotation .seal-year {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+#annotation .seal-day {
+  margin-top: 3px;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+/* The globe behind a note can be the brightest coast on it (Japan glows almost white), and the
+   words must stay readable there. So the text column sits on a wash of the background colour with
+   no edge: it fades out over its last 12 px on every side, so it never reads as a box. */
+#annotation .note-body {
+  position: relative;
+}
+
+#annotation .note-body::before {
+  position: absolute;
+  z-index: -1;
+  inset: -12px -16px -12px -14px;
+  background: rgb(15 27 45 / 88%);
+  content: "";
+  mask-image:
+    linear-gradient(to right, transparent, #000 12px, #000 calc(100% - 12px), transparent),
+    linear-gradient(to bottom, transparent, #000 12px, #000 calc(100% - 12px), transparent);
+  mask-composite: intersect;
 }
 
 #annotation h3 {
-  margin: 0 0 3px;
+  margin: 0 0 6px;
   font-family: var(--display);
-  font-size: 17px;
-  font-weight: 400;
+  font-size: 21px;
+  font-weight: 700;
   line-height: 1.2;
 }
 
@@ -204,34 +298,54 @@ h1 {
   margin: 0;
 }
 
-#annotation .annotation-source {
-  margin-top: 4px;
+#annotation .note-values {
+  font-size: 14.5px;
+  line-height: 1.45;
+}
+
+#annotation .note-values b {
+  font-family: var(--readout);
+  font-weight: 500;
+}
+
+#annotation .note-source {
+  margin-top: 6px;
   color: var(--quiet);
   font-size: 12.5px;
 }
 
-#leader {
-  position: fixed;
-  z-index: 3;
-  top: 0;
-  left: 0;
-  height: 1px;
-  background: var(--ink);
-  transform-origin: 0 0;
-  pointer-events: none;
+#annotation .note-source a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
-#feature-dot {
-  position: fixed;
-  z-index: 3;
-  top: 0;
-  left: 0;
-  width: 10px;
-  height: 10px;
-  margin: -5px 0 0 -5px;
-  border: 1px solid var(--ink);
-  border-radius: 50%;
-  pointer-events: none;
+#annotation.opening,
+#note-mark.opening {
+  animation: note-in 150ms ease-out;
+}
+
+@keyframes note-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #annotation.opening,
+  #note-mark.opening {
+    animation: none;
+  }
+}
+
+/* Read aloud, never seen: the note's words for a screen reader. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 /* ---------- Hint line ---------- */
@@ -257,6 +371,11 @@ h1 {
 
 .hint-touch {
   display: none;
+}
+
+/* Only when a note had no other place than across the hint (a big ring on a small phone). */
+body.note-over-hint #hint {
+  visibility: hidden;
 }
 
 /* ---------- Map buttons: one flat strip, square corners. ---------- */

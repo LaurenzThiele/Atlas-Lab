@@ -27,9 +27,17 @@
         <p id="lede"></p>
       </header>
 
-      <span id="feature-dot" hidden></span>
-      <span id="leader" hidden></span>
-      <div id="annotation" role="status" hidden></div>
+      <!-- The click note: the red mark on the record and the leader, drawn over the globe, then the
+           note itself. Its words are repeated for screen readers in the polite region below. -->
+      <svg id="note-mark" aria-hidden="true" hidden>
+        <path class="mark-ring" stroke-width="1.6" />
+        <path class="mark-ring" stroke-width="1.2" />
+        <path class="mark-ring" stroke-width="1" />
+        <path id="mark-column" stroke-width="1.2" hidden />
+        <line id="note-leader" />
+      </svg>
+      <div id="annotation" hidden></div>
+      <p id="annotation-live" class="visually-hidden" aria-live="polite"></p>
 
       <!-- Everything about how to use the map, in one place: what a click gives, then the gestures. -->
       <p id="hint">

@@ -17,6 +17,9 @@
 
 import "@fontsource/ibm-plex-serif/latin-400.css";
 import "@fontsource/ibm-plex-serif/latin-600.css";
+// The bold of the display face, only for the click note (its name and the year in the seal). The
+// browser fetches it the first time a note is drawn, so the start view never waits for it.
+import "@fontsource/shippori-mincho-b1/latin-700.css";
 import { createMap, RAMP_MAX_M, RAMP_MIN_M, rampColor, ringRadiusPx, SETTLE_S } from "./main.js";
 
 // Timeline: how long the whole record takes to arrive at 1x.
@@ -33,6 +36,9 @@ const MAX_HEIGHT_M = 524;
 const RAMP_STEPS = 5;
 const PICK_RADIUS_PX = 6;
 const CLICK_SLOP_PX = 5;
+// Two clicks this close in time and space are a double click, which zooms. The second click must
+// not also close the note the first one opened.
+const DOUBLE_CLICK_MS = 350;
 const MAX_ZOOM = 11; // GlobeView swaps to a flat Mercator view above zoom 12, which I never want.
 const TILT_DEG = 35;
 const FLY_MS = 800;
@@ -54,6 +60,24 @@ const MAX_STEP_S = 0.5;
 
 const NCEI_EVENT_URL = "https://www.ngdc.noaa.gov/hazel/view/hazards/tsunami/event-more-info/";
 const MONTHS = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(" ");
+
+// The click note is set like a hanko, the red seal stamped on Japanese documents: the record's
+// three strokes are stamped over again in shu red, a fine line leads to the note, and the date sits
+// in a small square seal beside the name.
+// The mark: the same three strokes main.js draws (shares of the outer radius), each a little finer
+// than the one outside it. A 1 m gauge reading is a ring of one or two pixels on the whole globe,
+// so the mark never shrinks below the 5 px the three red highlight rings keep for the same reason.
+const MARK_STROKE_SHARES = [1, 0.66, 0.33];
+const MARK_STROKE_PX = [1.6, 1.2, 1];
+const MARK_MIN_RADIUS_PX = 5;
+const MARK_SEGMENTS = 72;
+// A column is 2 px in radius (main.js); its outline sits just outside it, on the top face.
+const COLUMN_MARK_RADIUS_PX = 3.5;
+// The seal: a 52 px square at the left of a 66 px column (style.css sets the same sizes).
+const SEAL_PX = 52;
+// Where the note goes: this far beyond the outer stroke, and this far from every edge and control.
+const NOTE_GAP_PX = 28;
+const NOTE_MARGIN_PX = 8;
 
 // "In numbers", one line each, in the order the reader meets them: the counts first, then the lines
 // with a place on the map. A line is a list of parts: plain text, or a number in the readout face
@@ -244,12 +268,11 @@ function checkFigures(figures) {
   }
 }
 
-function formatDate(rings, i) {
+/** The second line of the seal: "11 Mar", or "Mar" alone, or nothing when only the year is known. */
+function sealDay(rings, i) {
   const month = rings.month[i];
-  const day = rings.day[i];
-  if (month !== null && day !== null) return `On ${day} ${MONTHS[month - 1]} ${rings.year[i]}`;
-  if (month !== null) return `In ${MONTHS[month - 1]} ${rings.year[i]}`;
-  return `In ${rings.year[i]}`;
+  if (month === null) return "";
+  return rings.day[i] === null ? MONTHS[month - 1] : `${rings.day[i]} ${MONTHS[month - 1]}`;
 }
 
 /** Names in the database are upper case, so title case turns AK into Ak and USA into Usa. */
@@ -259,13 +282,55 @@ function placeName(rings, i) {
   return [place, country].filter(Boolean).join(", ");
 }
 
-function annotationSentence(rings, i) {
+/**
+ * The values of the note as sentences, each a list of parts like FIGURE_LINES: plain text, or a
+ * number in the readout face with its unit in the text face. The deaths field counts the dead at
+ * this place, not for the whole tsunami (Nagapattinam lost 6,051 people in 2004, the whole event
+ * 227,899), so the sentence says "here". Death tolls from old records are estimates, so from a
+ * hundred up I round to three figures and say "about"; a small count is given as it is.
+ */
+function noteSentences(rings, i) {
+  // Tide gauges read to the centimetre, so a height under a metre keeps two decimals (0.14 m).
+  const runupM = rings.runup_m[i];
+  const heightM = Number(runupM.toFixed(runupM < 1 ? 2 : 1)).toLocaleString("en-US");
+  const sentences = [["Water reached ", { number: heightM, unit: " m" }, " above the sea."]];
   const deaths = rings.deaths[i];
-  const start = `${formatDate(rings, i)} the water reached ${rings.runup_m[i]} m`;
-  if (!deaths) return `${start}.`;
-  const people = deaths === 1 ? "1 person" : `${deaths.toLocaleString("en-US")} people`;
-  return `${start}, and ${people} died here.`;
+  if (deaths) {
+    const rounded = deaths >= 100 ? Number(deaths.toPrecision(3)) : deaths;
+    const people = rounded.toLocaleString("en-US");
+    sentences.push([
+      `The tsunami killed ${deaths >= 100 ? "about " : ""}`,
+      { number: people },
+      deaths === 1 ? " person here." : " people here.",
+    ]);
+  }
+  return sentences;
 }
+
+/** Append text parts to an element: strings as text, numbers in the readout face. */
+function appendParts(element, parts) {
+  for (const part of parts) {
+    if (typeof part === "string") {
+      element.append(part);
+      continue;
+    }
+    const number = document.createElement("b");
+    number.textContent = part.number;
+    element.append(number, part.unit ?? "");
+  }
+}
+
+const partsText = (parts) =>
+  parts.map((part) => (typeof part === "string" ? part : `${part.number}${part.unit ?? ""}`)).join("");
+
+/** Rectangles as { left, top, right, bottom }, and whether two of them touch. */
+const grow = (box, px) => ({
+  left: box.left - px,
+  top: box.top - px,
+  right: box.right + px,
+  bottom: box.bottom + px,
+});
+const touches = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
 
 function startFit() {
   // The radius of the globe is 256 * 2^zoom / (pi cos lat) px on this view. I leave room around it
@@ -295,7 +360,6 @@ async function startPage() {
     showRunups: true,
     showHighlights: true,
     annotated: null,
-    pinned: false,
   };
   const runS = () => TIMELINE_RUN_S / ui.speed;
   let draw = () => {};
@@ -305,8 +369,11 @@ async function startPage() {
   let tooltipTimer = null;
 
   const annotation = byId("annotation");
-  const leader = byId("leader");
-  const dot = byId("feature-dot");
+  const annotationLive = byId("annotation-live");
+  const noteMark = byId("note-mark");
+  const markRings = [...noteMark.querySelectorAll(".mark-ring")];
+  const markColumn = byId("mark-column");
+  const noteLeader = byId("note-leader");
 
   const map = createMap(byId("map"), {
     camera: startCamera,
@@ -330,17 +397,11 @@ async function startPage() {
       flight = null;
       draw();
     },
+    // The map answers a click (a tap on touch) and nothing else: no hover note, no highlight, no
+    // cursor change under the pointer. deck.gl only sends a click when the pointer did not drag.
     deckProps: {
       pickingRadius: PICK_RADIUS_PX,
-      onHover: (info) => {
-        // A finger has no hover: on touch the note opens with a tap.
-        if (ui.pinned || !map.data || !window.matchMedia("(hover: hover)").matches) return;
-        const index = info.x >= 0 ? nearestRing(info.x, info.y) : null;
-        if (index === null) closeAnnotation();
-        else if (index !== ui.annotated) openAnnotation(index, false);
-      },
-      getCursor: ({ isDragging, isHovering }) =>
-        isDragging ? "grabbing" : isHovering ? "pointer" : "grab",
+      onClick: (info) => onMapClick(info),
     },
   });
   // The frame ready waits for is the first step of the timeline (or the whole record with reduced
@@ -445,63 +506,365 @@ async function startPage() {
     numbers.append(line);
   });
 
-  /* ---------- Annotation ---------- */
+  /* ---------- Annotation: the seal stamp ---------- */
 
-  function closeAnnotation() {
+  const hasHighlight = new Set(highlightKeys.map((key) => highlights[key].index));
+  // Shippori Mincho B1 Bold is only needed by the note. I ask for it once the start view stands,
+  // so the first note a reader opens is already set in it.
+  document.fonts.load('700 21px "Shippori Mincho B1"');
+
+  /** Close the note. draw() passes redraw false, since it is already drawing. */
+  function closeAnnotation(redraw = true) {
+    if (ui.annotated === null) return;
     ui.annotated = null;
-    ui.pinned = false;
     annotation.hidden = true;
-    leader.hidden = true;
-    dot.hidden = true;
-    annotation.classList.remove("pinned");
+    noteMark.toggleAttribute("hidden", true);
+    document.body.classList.remove("note-over-hint");
+    annotationLive.textContent = "";
+    // The label of a red record comes back once its note is closed.
+    if (redraw) draw();
   }
 
-  function openAnnotation(index, pinned) {
+  function openAnnotation(index) {
     ui.annotated = index;
-    ui.pinned = pinned;
     annotation.replaceChildren();
+
+    const seal = document.createElement("div");
+    seal.className = "seal";
+    const year = document.createElement("span");
+    year.className = "seal-year";
+    year.textContent = rings.year[index];
+    seal.append(year);
+    const day = sealDay(rings, index);
+    if (day) {
+      const dayLine = document.createElement("span");
+      dayLine.className = "seal-day";
+      dayLine.textContent = day;
+      seal.append(dayLine);
+    }
+
+    const body = document.createElement("div");
+    body.className = "note-body";
     const name = document.createElement("h3");
     name.textContent = placeName(rings, index);
-    const sentence = document.createElement("p");
-    sentence.textContent = annotationSentence(rings, index);
+    body.append(name);
+    const sentences = noteSentences(rings, index);
+    const values = document.createElement("p");
+    values.className = "note-values";
+    sentences.forEach((parts, k) => {
+      if (k > 0) values.append(" ");
+      appendParts(values, parts);
+    });
+    body.append(values);
     const source = document.createElement("p");
-    source.className = "annotation-source";
-    source.append("Source: NOAA NCEI. ");
+    source.className = "note-source";
+    const eventId = rings.tsunamiEventId[index];
+    source.append("Source: NOAA NCEI, event ");
     const link = document.createElement("a");
-    link.href = `${NCEI_EVENT_URL}${rings.tsunamiEventId[index]}`;
+    link.href = `${NCEI_EVENT_URL}${eventId}`;
     link.target = "_blank";
     link.rel = "noopener";
-    link.textContent = `NCEI event ${rings.tsunamiEventId[index]}`;
+    link.textContent = eventId;
     source.append(link);
-    annotation.append(name, sentence, source);
-    annotation.classList.toggle("pinned", pinned);
-    placeAnnotation();
+    body.append(source);
+    annotation.append(seal, body);
+
+    // The same words for a screen reader, in one polite announcement: the date is in the seal, so
+    // it is spelled out here.
+    const date = [sealDay(rings, index), rings.year[index]].filter(Boolean).join(" ");
+    annotationLive.textContent = [
+      `${name.textContent}, ${date}.`,
+      ...sentences.map(partsText),
+      `Source: NOAA NCEI, event ${eventId}.`,
+    ].join(" ");
+
+    // The note fades in over 150 ms (style.css); restarting the animation fades every new note.
+    for (const element of [annotation, noteMark]) {
+      element.classList.remove("opening");
+      void element.offsetWidth;
+      element.classList.add("opening");
+    }
+    // draw() puts the labels away for this record and then places the note.
+    draw();
   }
 
-  /** The note follows its ring when the globe moves, and hides when the ring goes round the back. */
+  /** Is the record on the map right now? Filters and the timeline can take it away. */
+  function recordShown(index, shown) {
+    if (!ui.showRunups && !(ui.showHighlights && hasHighlight.has(index))) return false;
+    return shown.includes(index);
+  }
+
+  /**
+   * Screen points of a circle lying flat on the globe. The rings are drawn on the surface, not
+   * turned to face the camera, so near the rim of the globe or on a tilted view a ring is an
+   * ellipse. deck.gl turns a radius in pixels into its own units by dividing by the view's scale and
+   * lays it out on the plane that touches the globe at the ring's centre. I do the same here, in
+   * JavaScript, so the red strokes land exactly on the ones the GPU drew.
+   */
+  function flatCircle(viewport, lon, lat, elevationM, radiusPx, segments) {
+    const centre = viewport.projectPosition([lon, lat, elevationM]);
+    const length = Math.hypot(...centre);
+    const up = centre.map((v) => v / length);
+    // East is at right angles to up and to the globe's axis; north completes the plane.
+    const eastRaw = [-up[1], up[0], 0];
+    const eastLength = Math.hypot(...eastRaw) || 1;
+    const east = eastRaw.map((v) => v / eastLength);
+    const north = [
+      up[1] * east[2] - up[2] * east[1],
+      up[2] * east[0] - up[0] * east[2],
+      up[0] * east[1] - up[1] * east[0],
+    ];
+    const radius = radiusPx / viewport.scale;
+    const m = viewport.pixelProjectionMatrix;
+    const points = [];
+    for (let k = 0; k < segments; k += 1) {
+      const angle = (2 * Math.PI * k) / segments;
+      const c = Math.cos(angle) * radius;
+      const s = Math.sin(angle) * radius;
+      const x = centre[0] + east[0] * c + north[0] * s;
+      const y = centre[1] + east[1] * c + north[1] * s;
+      const z = centre[2] + east[2] * c + north[2] * s;
+      const w = m[3] * x + m[7] * y + m[11] * z + m[15];
+      points.push([(m[0] * x + m[4] * y + m[8] * z + m[12]) / w, (m[1] * x + m[5] * y + m[9] * z + m[13]) / w]);
+    }
+    return points;
+  }
+
+  const pathOf = (points) => `M${points.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join("L")}Z`;
+  const boxOf = (points) => ({
+    left: Math.min(...points.map((p) => p[0])),
+    top: Math.min(...points.map((p) => p[1])),
+    right: Math.max(...points.map((p) => p[0])),
+    bottom: Math.max(...points.map((p) => p[1])),
+  });
+
+  /** Where the note may not go: the controls on the map, read from the page as it is laid out. */
+  function noteObstacles() {
+    const ids = ["title", "hint", "map-buttons", "sheet-open"];
+    const elements = ids
+      .map((id) => byId(id))
+      // checkVisibility, not offsetParent: these controls are position: fixed, and a fixed element
+      // never has an offsetParent.
+      .filter((element) => element?.checkVisibility());
+    // The names of the other red records, so the note never lies across them.
+    elements.push(...labelHolder.children);
+    return elements.map((element) => grow(element.getBoundingClientRect(), NOTE_MARGIN_PX));
+  }
+
+  /**
+   * Draw the mark and the leader, and place the note beside the record: to its right, or to its
+   * left near the right edge, with the name level with the record. If neither side has room
+   * (always the case on a phone), the note goes to the foot of the map, just above the bottom
+   * sheet and the controls, or under the title when the record itself lies down there.
+   */
   function placeAnnotation() {
     if (ui.annotated === null) return;
-    const point = map.project(rings.lon[ui.annotated], rings.lat[ui.annotated]);
-    const area = byId("map").getBoundingClientRect();
-    const visible =
-      point && point[0] >= 0 && point[1] >= 0 && point[0] <= area.width && point[1] <= area.height;
-    annotation.hidden = !visible;
-    leader.hidden = !visible;
-    dot.hidden = !visible;
-    if (!visible) return;
-    const [x, y] = point;
-    const { offsetWidth: noteW, offsetHeight: noteH } = annotation;
-    const side = x + 44 + noteW + 12 > area.width ? -1 : 1;
-    const noteX = side > 0 ? x + 44 : x - 44 - noteW;
-    const noteY = Math.max(8, Math.min(area.height - noteH - 8, y - noteH - 28));
-    annotation.style.transform = `translate(${Math.max(8, noteX)}px, ${noteY}px)`;
-    dot.style.transform = `translate(${x}px, ${y}px)`;
-    // The line ends at the foot of the thin rule on the note's left side.
-    const endX = Math.max(8, noteX);
-    const dx = endX - x;
-    const dy = noteY + noteH - y;
-    leader.style.width = `${Math.hypot(dx, dy)}px`;
-    leader.style.transform = `translate(${x}px, ${y}px) rotate(${Math.atan2(dy, dx)}rad)`;
+    const index = ui.annotated;
+    const viewport = map.deck.getViewports()[0];
+    const onNearSide = viewport && map.project(rings.lon[index], rings.lat[index]) !== null;
+    annotation.hidden = !onNearSide;
+    // SVG elements have no hidden property, so the attribute is set directly.
+    noteMark.toggleAttribute("hidden", !onNearSide);
+    if (!onNearSide) {
+      document.body.classList.remove("note-over-hint");
+      return;
+    }
+
+    // The mark, and the box around everything the note must leave uncovered.
+    const lon = rings.lon[index];
+    const lat = rings.lat[index];
+    // The three red records keep their red ring in 3D and have no column, so they keep the
+    // ring mark there too.
+    const columns = ui.mark === "columns" && !(ui.showHighlights && hasHighlight.has(index));
+    let outer;
+    let featureBox;
+    if (columns) {
+      const topM = rings.runup_m[index] * COLUMN_EXAGGERATION;
+      outer = flatCircle(viewport, lon, lat, topM, COLUMN_MARK_RADIUS_PX, 6);
+      markColumn.setAttribute("d", pathOf(outer));
+      const base = flatCircle(viewport, lon, lat, 0, COLUMN_MARK_RADIUS_PX, 6);
+      featureBox = boxOf([...outer, ...base]);
+    } else {
+      const radiusPx = Math.max(ringRadiusPx(rings.runup_m[index], map.camera.zoom), MARK_MIN_RADIUS_PX);
+      const strokes = MARK_STROKE_SHARES.map((share) =>
+        flatCircle(viewport, lon, lat, 0, radiusPx * share, MARK_SEGMENTS),
+      );
+      strokes.forEach((points, k) => markRings[k].setAttribute("d", pathOf(points)));
+      outer = strokes[0];
+      featureBox = boxOf(outer);
+    }
+    markColumn.toggleAttribute("hidden", !columns);
+    for (const ring of markRings) ring.toggleAttribute("hidden", columns);
+    // The note lines up with the mark (for a column, its top), not with the middle of the column.
+    const outerBox = boxOf(outer);
+    const centre = [(outerBox.left + outerBox.right) / 2, (outerBox.top + outerBox.bottom) / 2];
+
+    // The note, measured as it is set, and the spot of its name.
+    const area = grow(byId("map").getBoundingClientRect(), -NOTE_MARGIN_PX);
+    const noteW = annotation.offsetWidth;
+    const noteH = annotation.offsetHeight;
+    const name = annotation.querySelector("h3");
+    const nameY = name.offsetTop + Math.min(name.offsetHeight, 26) / 2;
+    const feature = grow(featureBox, NOTE_MARGIN_PX);
+    // The heart of the record (its centre and inner strokes, or a column's top) is never covered,
+    // so a second click on it always reaches it.
+    const coreR = columns ? COLUMN_MARK_RADIUS_PX + NOTE_MARGIN_PX : Math.max(10, 0.66 * (outerBox.right - outerBox.left) / 2);
+    const core = { left: centre[0] - coreR, top: centre[1] - coreR, right: centre[0] + coreR, bottom: centre[1] + coreR };
+    const hintBox = grow(byId("hint").getBoundingClientRect(), NOTE_MARGIN_PX);
+    const obstacles = noteObstacles();
+    const clampX = (x) => Math.max(area.left, Math.min(area.right - noteW - WASH_RIGHT_PX, x));
+    const clampY = (y) => Math.max(area.top + WASH_Y_PX, Math.min(area.bottom - noteH - WASH_Y_PX, y));
+    // The note's footprint includes the soft wash behind its words, which reaches past the 280 px
+    // (style.css: 12 px above and below, 16 px to the right).
+    const WASH_Y_PX = 12;
+    const WASH_RIGHT_PX = 16;
+    const boxAt = ({ x, y }) => ({
+      left: x,
+      top: y - WASH_Y_PX,
+      right: x + noteW + WASH_RIGHT_PX,
+      bottom: y + noteH + WASH_Y_PX,
+    });
+    const overlapPx2 = (a, b) =>
+      Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)) *
+      Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+    // How badly a spot would cover something: nothing at all for a spot that fits. On a phone a
+    // big ring can leave no free spot at all, since the map there is barely 450 px high. Then the
+    // note may lie across the outer stroke, and as a last resort across the hint line (which steps
+    // aside, see below), but never across the heart of the record, the title or the map buttons.
+    const cost = (spot) => {
+      const box = boxAt(spot);
+      const outside =
+        Math.max(0, area.left - box.left) + Math.max(0, box.right - area.right) +
+        Math.max(0, area.top - box.top) + Math.max(0, box.bottom - area.bottom);
+      const controls = obstacles.reduce((sum, other) => sum + overlapPx2(box, other), 0);
+      const hint = overlapPx2(box, hintBox);
+      return outside * 1e6 + 1000 * overlapPx2(box, core) + overlapPx2(box, feature) + 3 * (controls - hint) + 2 * hint;
+    };
+    const levelY = clampY(centre[1] - nameY);
+    // Heights to try beside the record: level with it, then just under the title, then just above
+    // the hint line, so a record in a corner still gets its note beside it.
+    const title = byId("title").getBoundingClientRect();
+    const foot = Math.min(area.bottom, hintBox.top);
+    const below = (edge) => edge + WASH_Y_PX;
+    const above = (edge) => edge - WASH_Y_PX - noteH;
+    const heights = [levelY, clampY(below(title.bottom + NOTE_MARGIN_PX)), clampY(above(foot))];
+    const right = featureBox.right + NOTE_GAP_PX;
+    const left = featureBox.left - NOTE_GAP_PX - noteW;
+    // Above or below the record, the seal goes straight over or under it first, so the leader
+    // drops to the seal without crossing the words.
+    // The seal sits at the left of its column, so its centre is half a seal in from the edge.
+    const sealCentreX = SEAL_PX / 2;
+    const besideY = (y) =>
+      [clampX(centre[0] - sealCentreX), clampX(centre[0] - noteW / 2), clampX(area.left), clampX(area.right)].map((x) => ({
+        x,
+        y: clampY(y),
+        side: y > centre[1] ? "below" : "above",
+      }));
+    const candidates = [
+      ...heights.map((y) => ({ x: right, y, side: "right" })),
+      ...heights.map((y) => ({ x: left, y, side: "left" })),
+      // No room beside it: above the bottom sheet and the hint line, or under the title, or just
+      // below or above the record, or just clear of its heart.
+      ...besideY(above(foot)),
+      ...besideY(below(title.bottom + NOTE_MARGIN_PX)),
+      ...besideY(below(feature.bottom)),
+      ...besideY(above(feature.top)),
+      ...besideY(below(core.bottom)),
+      ...besideY(above(core.top)),
+    ];
+    // The first spot that fits; if none does, the one that covers least, kept inside the map.
+    const chosen =
+      candidates.find((spot) => cost(spot) === 0) ??
+      candidates
+        .map((spot) => ({ ...spot, x: clampX(spot.x), y: clampY(spot.y) }))
+        .reduce((best, spot) => (cost(spot) < cost(best) ? spot : best));
+    // Words on words are unreadable, so if the note had to lie across the hint line, the hint
+    // steps aside while this note is open. The reader has just clicked; they know how.
+    document.body.classList.toggle("note-over-hint", touches(boxAt(chosen), hintBox));
+    annotation.style.transform = `translate(${Math.round(chosen.x)}px, ${Math.round(chosen.y)}px)`;
+
+    // The leader runs to the side of the note that faces the record, level with the name: to the
+    // seal on the note's left, or to the end of the name on its right. A note above or below the
+    // record gets it on the seal's lower or upper edge when the seal stands over the record, and
+    // otherwise on the edge that faces the record, so the line never runs under the words.
+    const range = document.createRange();
+    range.selectNodeContents(name);
+    const firstLine = range.getClientRects()[0] ?? name.getBoundingClientRect();
+    const nameRight = chosen.x + (firstLine.right - annotation.getBoundingClientRect().left);
+    const nameLevel = chosen.y + nameY;
+    const seal = annotation.querySelector(".seal");
+    const sealLeft = chosen.x + seal.offsetLeft;
+    const sealTop = chosen.y + seal.offsetTop;
+    let end;
+    if (chosen.side === "right") end = [chosen.x, nameLevel];
+    else if (chosen.side === "left") {
+      // Level with the name, the line stops at the end of the name; on a slant it stops at the
+      // note's edge, clear of the longer lines under the name.
+      const level = Math.abs(nameLevel - centre[1]) < 4;
+      end = [level ? nameRight + NOTE_MARGIN_PX : chosen.x + noteW, nameLevel];
+    } else {
+      // Above or below: the seal's near edge, or either side level with the name, whichever line
+      // is shortest without crossing the words or the seal.
+      // The words: the name's first line as far as it reaches, then the full column under it.
+      const body = annotation.querySelector(".note-body");
+      const wordsLeft = chosen.x + body.offsetLeft - 4;
+      const firstLineBottom = chosen.y + body.offsetTop + firstLine.height;
+      const nameLine = { left: wordsLeft, top: chosen.y + body.offsetTop, right: nameRight + 4, bottom: firstLineBottom };
+      const rest = { left: wordsLeft, top: firstLineBottom, right: chosen.x + noteW, bottom: chosen.y + noteH };
+      const stamp = { left: sealLeft + 1, top: sealTop + 1, right: sealLeft + SEAL_PX - 1, bottom: sealTop + SEAL_PX - 1 };
+      const sealEdgeY = chosen.side === "above" ? sealTop + SEAL_PX : sealTop;
+      // The right-hand end sits just past the name, never in the empty space beyond it.
+      const ends = [
+        [sealLeft + SEAL_PX / 2, sealEdgeY],
+        [chosen.x, nameLevel],
+        [nameRight + NOTE_MARGIN_PX, nameLevel],
+      ];
+      const inside = (x, y, box) => x > box.left && x < box.right && y > box.top && y < box.bottom;
+      const crossing = ([x, y]) => {
+        let hits = 0;
+        for (let k = 1; k < 64; k += 1) {
+          const px = centre[0] + ((x - centre[0]) * k) / 64;
+          const py = centre[1] + ((y - centre[1]) * k) / 64;
+          if (inside(px, py, nameLine) || inside(px, py, rest) || inside(px, py, stamp)) hits += 1;
+        }
+        return hits;
+      };
+      end = ends.reduce((best, candidate) => {
+        const score = (e) => crossing(e) * 1e4 + Math.hypot(e[0] - centre[0], e[1] - centre[1]);
+        return score(candidate) < score(best) ? candidate : best;
+      });
+    }
+    // It starts on the outer stroke, at the point that faces the end of the line.
+    const heading = Math.atan2(end[1] - centre[1], end[0] - centre[0]);
+    const start = outer.reduce((best, point) => {
+      const angle = Math.atan2(point[1] - centre[1], point[0] - centre[0]);
+      const off = Math.abs(Math.atan2(Math.sin(angle - heading), Math.cos(angle - heading)));
+      return off < best.off ? { point, off } : best;
+    }, { point: outer[0], off: Infinity }).point;
+    noteLeader.setAttribute("x1", start[0].toFixed(1));
+    noteLeader.setAttribute("y1", start[1].toFixed(1));
+    noteLeader.setAttribute("x2", end[0].toFixed(1));
+    noteLeader.setAttribute("y2", end[1].toFixed(1));
+  }
+
+  /**
+   * A click on the globe: open the note of the record under it, close it on a second click on the
+   * same record or a click on empty globe. In 3D a column is found by deck.gl's own pick, since its
+   * top stands far from the spot where it meets the ground; rings by the nearest centre.
+   */
+  let lastClick = { atMs: -Infinity, x: 0, y: 0 };
+  function onMapClick(info) {
+    if (!map.data) return;
+    const nowMs = performance.now();
+    const second =
+      nowMs - lastClick.atMs < DOUBLE_CLICK_MS && Math.hypot(info.x - lastClick.x, info.y - lastClick.y) < CLICK_SLOP_PX;
+    lastClick = { atMs: nowMs, x: info.x, y: info.y };
+    if (second) return;
+    const index = (ui.mark === "columns" ? redRingAt(info.x, info.y) : null)
+      ?? (info.layer?.id === "columns" ? map.ringFromPick(info) : null)
+      ?? nearestRing(info.x, info.y);
+    if (index === null || index === ui.annotated) closeAnnotation();
+    else openAnnotation(index);
   }
 
   /* ---------- Picking ---------- */
@@ -526,11 +889,39 @@ async function startPage() {
     };
     if (ui.showRunups) for (const index of map.shownRings()) consider(index);
     else for (const { index } of highlightLayer) consider(index);
-    candidates.sort((a, b) => a[0] - b[0]);
-    const nearest = candidates.find(
+    // Several records can share one spot (Lituya Bay has three, from 1853, 1936 and 1958). Among
+    // centres within a pixel of the nearest, the red one wins, since it is drawn on top, and
+    // otherwise the tallest, whose ring is the one a reader sees there.
+    const onNearSide = candidates.filter(
       ([, index]) => map.project(rings.lon[index], rings.lat[index]) !== null,
     );
-    return nearest ? nearest[1] : null;
+    if (onNearSide.length === 0) return null;
+    const nearestPx = Math.min(...onNearSide.map(([distancePx]) => distancePx));
+    const tied = onNearSide.filter(([distancePx]) => distancePx <= nearestPx + 1);
+    const rank = (index) =>
+      (ui.showHighlights && hasHighlight.has(index) ? 1e6 : 0) + rings.runup_m[index];
+    return tied.reduce((best, [, index]) => (rank(index) > rank(best) ? index : best), tied[0][1]);
+  }
+
+  /**
+   * In 3D the three red records are rings on the ground, drawn over the columns. A click inside one
+   * of them means that record, even where another record's column stands on the same spot.
+   */
+  function redRingAt(x, y) {
+    if (!ui.showHighlights) return null;
+    const shown = map.shownRings();
+    let best = null;
+    for (const { index } of highlightLayer) {
+      const point = map.project(rings.lon[index], rings.lat[index]);
+      if (!point || !shown.includes(index)) continue;
+      const reachPx =
+        Math.max(ringRadiusPx(rings.runup_m[index], map.camera.zoom), MARK_MIN_RADIUS_PX) + PICK_RADIUS_PX;
+      const distancePx = Math.hypot(point[0] - x, point[1] - y);
+      if (distancePx <= reachPx && (best === null || distancePx < best.distancePx)) {
+        best = { index, distancePx };
+      }
+    }
+    return best?.index ?? null;
   }
 
   /* ---------- Camera ---------- */
@@ -609,7 +1000,9 @@ async function startPage() {
     const shownNow = new Set(shown);
     for (const key of highlightKeys) {
       const { index, label: text } = highlights[key];
-      if (!shownNow.has(index)) continue;
+      // While its note is open, the note names the record, and its label would sit where the
+      // note goes.
+      if (!shownNow.has(index) || index === ui.annotated) continue;
       const point = map.project(rings.lon[index], rings.lat[index]);
       if (!point) continue;
       const radiusPx = Math.max(ringRadiusPx(rings.runup_m[index], map.camera.zoom), 5);
@@ -648,6 +1041,9 @@ async function startPage() {
     });
 
     const shown = map.shownRings();
+    // The mark follows its record through the timeline and the filters, and the note closes once
+    // the record is no longer on the map (filtered out, or not reached yet).
+    if (ui.annotated !== null && !recordShown(ui.annotated, shown)) closeAnnotation(false);
     placeLabels(shown);
 
     // The current year is the year of the latest ring on the map. If a filter hides every ring so
@@ -710,7 +1106,6 @@ async function startPage() {
     button.addEventListener("click", () => {
       ui.mark = button.dataset.mark;
       pressWord("[data-mark]", button);
-      closeAnnotation();
       // Columns stand on the surface, so seen straight from above they have no height to show.
       if (ui.mark === "columns" && map.camera.pitch < 20) flyTo({ pitch: TILT_DEG });
       draw();
@@ -720,7 +1115,6 @@ async function startPage() {
     button.addEventListener("click", () => {
       ui[field] = !ui[field];
       button.setAttribute("aria-pressed", String(ui[field]));
-      closeAnnotation();
       draw();
     });
   };
@@ -730,7 +1124,6 @@ async function startPage() {
   const setMinHeight = (heightM) => {
     ui.minHeightM = heightM;
     byId("min-height-value").textContent = heightM === 0 ? "0 m" : metres(heightM);
-    closeAnnotation();
     draw();
   };
   byId("min-height").addEventListener("input", (event) => {
@@ -751,7 +1144,7 @@ async function startPage() {
       setMinHeight(0);
     }
     draw();
-    openAnnotation(index, true);
+    openAnnotation(index);
     flyTo({
       longitude: rings.lon[index],
       latitude: rings.lat[index],
@@ -825,20 +1218,9 @@ async function startPage() {
 
   const mapElement = byId("map");
   mapElement.addEventListener("contextmenu", (event) => event.preventDefault());
-  // A tap pins the note so its link can be clicked. A click also arrives after a drag, so I compare
-  // it with where the press began. Grabbing the globe cancels any flight in progress.
-  const pressAt = { x: 0, y: 0 };
-  mapElement.addEventListener("pointerdown", (event) => {
+  // Grabbing the globe cancels any flight in progress. Clicks on the globe go to onMapClick.
+  mapElement.addEventListener("pointerdown", () => {
     flight = null;
-    pressAt.x = event.clientX;
-    pressAt.y = event.clientY;
-  });
-  mapElement.addEventListener("click", (event) => {
-    if (Math.hypot(event.clientX - pressAt.x, event.clientY - pressAt.y) > CLICK_SLOP_PX) return;
-    const box = mapElement.getBoundingClientRect();
-    const index = nearestRing(event.clientX - box.left, event.clientY - box.top);
-    if (index === null) closeAnnotation();
-    else openAnnotation(index, true);
   });
 
   mapElement.addEventListener("dblclick", () => zoomBy(ZOOM_STEP));
