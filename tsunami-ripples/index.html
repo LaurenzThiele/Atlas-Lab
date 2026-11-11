@@ -11,11 +11,11 @@
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="favicon-32.png" sizes="32x32" />
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-    <script type="module" crossorigin src="./assets/index-Bxmt4bov.js"></script>
+    <script type="module" crossorigin src="./assets/index-hZulXETi.js"></script>
     <link rel="modulepreload" crossorigin href="./assets/array-utils-flat-BL8Cekj1.js">
     <link rel="modulepreload" crossorigin href="./assets/expression-C4x9yiMU.js">
     <link rel="modulepreload" crossorigin href="./assets/get-attribute-from-layouts-Dd2gixpo.js">
-    <link rel="stylesheet" crossorigin href="./assets/index-DlvCY4WC.css">
+    <link rel="stylesheet" crossorigin href="./assets/index-BnP8bXtv.css">
   </head>
   <body>
     <div id="map" aria-label="Globe of tsunami records, sized by wave height, over a flat tint of the land."></div>
@@ -31,9 +31,17 @@
         <p id="lede"></p>
       </header>
 
-      <span id="feature-dot" hidden></span>
-      <span id="leader" hidden></span>
-      <div id="annotation" role="status" hidden></div>
+      <!-- The click note: the red mark on the record and the leader, drawn over the globe, then the
+           note itself. Its words are repeated for screen readers in the polite region below. -->
+      <svg id="note-mark" aria-hidden="true" hidden>
+        <path class="mark-ring" stroke-width="1.6" />
+        <path class="mark-ring" stroke-width="1.2" />
+        <path class="mark-ring" stroke-width="1" />
+        <path id="mark-column" stroke-width="1.2" hidden />
+        <line id="note-leader" />
+      </svg>
+      <div id="annotation" hidden></div>
+      <p id="annotation-live" class="visually-hidden" aria-live="polite"></p>
 
       <!-- Everything about how to use the map, in one place: what a click gives, then the gestures. -->
       <p id="hint">
