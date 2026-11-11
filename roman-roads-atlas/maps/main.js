@@ -44,6 +44,10 @@ export const INK_BLUE = "#4F6E78";
 export const RUBRIC = "#9A2F1F";
 export const SEPIA = "#8F7348";
 export const IRON_GALL = "#2A2118";
+// The selected road: a 4 px Rubric line over a 7 px Parchment casing, at every zoom.
+const SELECTED_PX = 4;
+const SELECTED_CASING_PX = 7;
+export const NO_SEGMENT = -1;
 const IRON_GALL_RGB = [42, 33, 24];
 const SEPIA_RGB = [143, 115, 72];
 
@@ -136,6 +140,19 @@ export function roadLayer(id, color, type) {
   };
 }
 
+// A fixed width in pixels at every zoom: the mark is a pen line on the plate, not a road width.
+function selectedLayer(id, color, widthPx) {
+  return {
+    id,
+    type: "line",
+    source: "roads",
+    "source-layer": "roads",
+    filter: ["==", ["get", "s"], NO_SEGMENT],
+    layout: { "line-cap": "butt", "line-join": "round" },
+    paint: { "line-color": color, "line-width": widthPx },
+  };
+}
+
 function certaintyLayer(certainty) {
   const dash = CERTAINTY_DASH[certainty];
   return {
@@ -197,10 +214,6 @@ function buildStyle() {
       // screen, with range requests, so the map never waits for all 107,603 road pieces.
       roads: { type: "vector", url: `pmtiles://${layerUrl("roads.pmtiles")}` },
       rome: {
-        type: "geojson",
-        data: { type: "FeatureCollection", features: [] },
-      },
-      hover: {
         type: "geojson",
         data: { type: "FeatureCollection", features: [] },
       },
@@ -274,12 +287,11 @@ function buildStyle() {
       certaintyLayer(1),
       certaintyLayer(2),
       certaintyLayer(3),
-      {
-        id: "hover",
-        type: "line",
-        source: "hover",
-        paint: { "line-color": RUBRIC, "line-width": zoomWidth(3.2) },
-      },
+      // The road a click selects, drawn again on top: every piece of its segment, Rubric over a
+      // Parchment casing, so it lifts off the roads beside it. Both read the same road tiles with a
+      // filter on the segment index, which ui.js swaps; s is never -1, so nothing shows at first.
+      selectedLayer("selected_casing", PARCHMENT, SELECTED_CASING_PX),
+      selectedLayer("selected", RUBRIC, SELECTED_PX),
       {
         id: "rome_marker",
         type: "circle",

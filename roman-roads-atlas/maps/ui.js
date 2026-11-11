@@ -10,6 +10,8 @@
    come from totals.json, which prepare.py sums from the exact geometry, so each group adds up to
    the headline instead of drifting by a kilometre of rounding. */
 
+import { NO_SEGMENT } from "./main.js";
+
 // The start of the draw is Rome, and 450 km of network per second crosses the empire in 20 s.
 const PLAY_KM_PER_S = 450;
 const SPEEDS = [
@@ -55,11 +57,10 @@ const PAPER_RGB = [239, 228, 200]; // the Parchment page that shows wherever the
 // A single coastline or road through the letters already spoils a word, so I judge by the darkest
 // 1 % of the pixels behind the text, not by their average.
 const DARKEST_SHARE = 0.01;
-// The note stands this far from the road point, on whichever side is clear.
+// The cartouche stands this far from the middle of its road, on whichever side is clear.
 const NOTE_GAP_PX = 44;
 
 const RIVER_LAYERS = ["rivers", "lakes", "lakes_outline", "coast", "coast_ripples"];
-const ITINERE_ZENODO_URL = "https://doi.org/10.5281/zenodo.17122148";
 const SVG_NS = "http://www.w3.org/2000/svg";
 const PLAY_PATH = "M6 4v12l10-6z";
 const PAUSE_PATH = "M6 4h3v12H6zM11 4h3v12h-3z";
@@ -275,8 +276,8 @@ function buildFigures(figures) {
   return { farthestButton: addShowOnMap(farthest) };
 }
 
-// The crosshair flies to the farthest point and pins the note on its road, which draws that road as
-// the one highlight. flyTo jumps instead when the reader asks for reduced motion.
+// The crosshair flies to the farthest point and opens the note on its road, which marks that road
+// as the one highlight. flyTo jumps instead when the reader asks for reduced motion.
 function wireShowOnMap({ map, button, targetReady, annotation, sheet }) {
   button.addEventListener("click", async () => {
     const target = await targetReady;
@@ -506,70 +507,216 @@ function createTimeline({ map, roads, drawCurve, figures, layerUrl }) {
   };
 }
 
-/* ---- annotation ---- */
+/* ---- annotation: the cartouche ---- */
 
-function roadName(name) {
-  // The data writes a road as "Rome-Ostia". A single hyphen joins two places; anything else stays
-  // as the dataset wrote it, because a hyphen can also belong to a place name.
-  const parts = name.split("-");
-  return parts.length === 2 ? `${parts[0].trim()} to ${parts[1].trim()}` : name;
+/* The note is set like the title cartouche of an engraved atlas plate: a framed card with a double
+   rule and a solid square on each corner, tied to its road by one stroke of the pen. Only a click or
+   a tap opens it; moving the pointer over the map does nothing at all. */
+
+// The words of the key, so the note and the key never name one thing two ways.
+const TYPE_WORDS = { "Main Road": "Main road", "Secondary Road": "Secondary road" };
+
+function lengthText(lengthKm) {
+  return lengthKm < 10 ? lengthKm.toFixed(1) : km(lengthKm);
 }
 
-function roadSentence(segment) {
-  const type = segment.Type.replace(" Road", "").toLowerCase();
-  const article = type === "main" ? "A main" : "A secondary";
-  const certainty = segment.Segment_s.toLowerCase();
-  const length = segment.length_km < 10 ? segment.length_km.toFixed(1) : km(segment.length_km);
-  return `${article} road whose route is ${certainty}, ${length} km long.`;
+function fillNote(note, segment) {
+  const frame = document.createElement("div");
+  frame.className = "frame";
+  for (const corner of ["nw", "ne", "sw", "se"]) {
+    const square = document.createElement("span");
+    square.className = `corner ${corner}`;
+    frame.append(square);
+  }
+  const name = document.createElement("h2");
+  name.textContent = segment.Name?.trim() || "Roman road";
+  const sentence = document.createElement("p");
+  const type = TYPE_WORDS[segment.Type] ?? segment.Type;
+  const number = document.createElement("b");
+  number.textContent = lengthText(segment.length_km);
+  // A no-break space keeps the number and its unit on one line.
+  sentence.append(`${type}, ${segment.Segment_s.toLowerCase()}. `, number, "\u00a0km long.");
+  const source = document.createElement("p");
+  source.className = "source";
+  source.textContent = segment.Bibliograp
+    ? `Source: Itiner-e 2025, ${segment.Bibliograp}`
+    : "Source: Itiner-e 2025";
+  frame.append(name, sentence, source);
+  note.replaceChildren(frame);
+  // The live region gets the same words as one plain sentence each, with the name in its own case.
+  return `${name.textContent}. ${sentence.textContent} ${source.textContent}.`;
 }
 
-// A few references carry their own web address. All the others are citations of printed works, so
-// their link goes to the dataset record they were collected for.
-function referenceUrl(reference) {
-  const direct = reference.match(/https?:\/\/[^\s,;]+/);
-  return direct ? direct[0] : ITINERE_ZENODO_URL;
+// Screen-space geometry helpers. Everything below works in map-area pixels.
+const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+function nearestOnSegment(p, a, b) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const lengthSq = dx * dx + dy * dy;
+  const t = lengthSq ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / lengthSq)) : 0;
+  return { x: a.x + t * dx, y: a.y + t * dy, t };
 }
+
+/* An occupancy grid of the selected road, in cells of a few pixels, with a summed-area table on
+   top: then "how much of the road lies under this box" is four lookups, cheap enough to test
+   hundreds of places for the note on every frame of a drag. */
+function roadGrid(width, height, lines, cellPx) {
+  const columns = Math.ceil(width / cellPx) + 1;
+  const rows = Math.ceil(height / cellPx) + 1;
+  const sums = new Float64Array((columns + 1) * (rows + 1));
+  const cells = new Uint8Array(columns * rows);
+  const mark = (x, y) => {
+    const column = Math.floor(x / cellPx);
+    const row = Math.floor(y / cellPx);
+    if (column >= 0 && row >= 0 && column < columns && row < rows) cells[row * columns + column] = 1;
+  };
+  for (const points of lines) {
+    for (let i = 1; i < points.length; i += 1) {
+      const a = points[i - 1];
+      const b = points[i];
+      if (!a || !b) continue;
+      const steps = Math.min(4000, Math.ceil(distance(a, b) / (cellPx / 2)) + 1);
+      for (let k = 0; k <= steps; k += 1) {
+        mark(a.x + ((b.x - a.x) * k) / steps, a.y + ((b.y - a.y) * k) / steps);
+      }
+    }
+  }
+  for (let row = 0; row < rows; row += 1) {
+    let rowSum = 0;
+    for (let column = 0; column < columns; column += 1) {
+      rowSum += cells[row * columns + column];
+      sums[(row + 1) * (columns + 1) + column + 1] = sums[row * (columns + 1) + column + 1] + rowSum;
+    }
+  }
+  return (box) => {
+    const c0 = Math.max(0, Math.min(columns, Math.floor(box.left / cellPx)));
+    const c1 = Math.max(0, Math.min(columns, Math.ceil(box.right / cellPx)));
+    const r0 = Math.max(0, Math.min(rows, Math.floor(box.top / cellPx)));
+    const r1 = Math.max(0, Math.min(rows, Math.ceil(box.bottom / cellPx)));
+    const at = (r, c) => sums[r * (columns + 1) + c];
+    return at(r1, c1) - at(r0, c1) - at(r1, c0) + at(r0, c0);
+  };
+}
+
+const overlapArea = (a, b) =>
+  Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)) *
+  Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
 
 function wireAnnotation({ map, segments, stage }) {
   const note = byId("annotation");
+  const live = byId("annotation-live");
   const leader = byId("leader");
-  const line = leader.querySelector("line");
-  const ring = leader.querySelector("circle");
-  const hoverSource = map.getSource("hover");
+  const stroke = leader.querySelector(".pen");
+  const dot = leader.querySelector(".dot");
+  const ticks = [...leader.querySelectorAll(".tick")];
   const layers = ["roads_main", "roads_secondary"];
-  const nothing = { type: "FeatureCollection", features: [] };
-  let shownSegment = null;
-  let anchor = null;
-  let pinned = false;
-  let selectedLines = [];
+  let shown = null; // the segment index on show, or null
+  let anchor = null; // the segment's middle, where the pen stroke starts
+  let lines = []; // the segment's lines as [lng, lat] arrays, from the tiles in memory
+  let ends = []; // its two ends: { end, inward } as {lng, lat}
+
+  const setMark = (s) => {
+    for (const id of ["selected_casing", "selected"]) {
+      map.setFilter(id, ["==", ["get", "s"], s ?? NO_SEGMENT]);
+    }
+  };
 
   function close() {
-    shownSegment = null;
+    shown = null;
     anchor = null;
-    pinned = false;
+    lines = [];
+    ends = [];
     note.hidden = true;
-    note.classList.remove("pinned");
     leader.classList.remove("on");
-    hoverSource.setData(nothing);
-    map.getCanvas().style.cursor = "";
+    live.textContent = "";
+    setMark(null);
   }
 
-  function fill(segment) {
-    const title = document.createElement("h2");
-    title.textContent = roadName(segment.Name);
-    const sentence = document.createElement("p");
-    sentence.textContent = roadSentence(segment);
-    const source = document.createElement("p");
-    source.className = "source";
-    source.append("Source: Itiner-e");
-    if (segment.Bibliograp) {
-      const link = document.createElement("a");
-      link.href = referenceUrl(segment.Bibliograp);
-      link.rel = "noopener";
-      link.textContent = segment.Bibliograp;
-      source.append(". ", link);
+  const visible = (lngLat) => !map.transform.isLocationOccluded(lngLat);
+  const toLngLat = ([lng, lat]) => ({ lng, lat });
+  function project(lngLat) {
+    if (!visible(lngLat)) return null;
+    const { x, y } = map.project(lngLat);
+    return { x, y };
+  }
+
+  /* The road tiles cut a segment into pieces, and every tile repeats the pieces that cross its
+     buffer, so I cannot read the two ends straight from the data. A piece end is a real end of the
+     road only when no other piece carries on from it: no piece passes through that point, and no
+     piece starts there heading the other way. Copies of the same piece from a neighbouring tile
+     start there heading the same way, so they do not count. */
+  function readGeometry() {
+    const features = map.querySourceFeatures("roads", {
+      sourceLayer: "roads",
+      filter: ["==", ["get", "s"], shown],
+    });
+    lines = features.flatMap(({ geometry }) =>
+      geometry.type === "MultiLineString" ? geometry.coordinates : [geometry.coordinates],
+    );
+    const screen = lines.map((coordinates) => coordinates.map((c) => project(toLngLat(c))));
+    const NEAR_PX = 1.5;
+    const found = [];
+    screen.forEach((points, index) => {
+      for (const atStart of [true, false]) {
+        const order = atStart ? points : [...points].reverse();
+        const coordinates = atStart ? lines[index] : [...lines[index]].reverse();
+        const p = order[0];
+        if (!p) continue;
+        // The first vertex at least 3 px away gives the road's heading at its end.
+        let k = 1;
+        while (k < order.length - 1 && (!order[k] || distance(order[k], p) < 3)) k += 1;
+        if (!order[k]) continue;
+        const heading = { x: order[k].x - p.x, y: order[k].y - p.y };
+        const continues = screen.some((other, j) => {
+          if (j === index) return false;
+          for (let i = 1; i < other.length; i += 1) {
+            if (!other[i - 1] || !other[i]) continue;
+            const near = nearestOnSegment(p, other[i - 1], other[i]);
+            if (distance(near, p) > NEAR_PX) continue;
+            const atOtherEnd = (i === 1 && near.t < 0.01) || (i === other.length - 1 && near.t > 0.99);
+            if (!atOtherEnd) return true; // it runs straight through
+            const from = i === 1 ? other[1] : other[other.length - 2];
+            const to = i === 1 ? other[0] : other[other.length - 1];
+            const otherHeading = { x: from.x - to.x, y: from.y - to.y };
+            if (heading.x * otherHeading.x + heading.y * otherHeading.y < 0) return true;
+          }
+          return false;
+        });
+        if (!continues && !found.some((f) => distance(f.p, p) < 4)) {
+          found.push({ p, end: toLngLat(coordinates[0]), inward: toLngLat(coordinates[k]) });
+        }
+      }
+    });
+    ends = found.map(({ end, inward }) => ({ end, inward }));
+    return screen;
+  }
+
+  /* The pen stroke starts at the middle of the road. With the whole road on screen that is the
+     point halfway between its two ends; with only part of it on screen, the middle of that part, so
+     the note always ties to road the reader can see. */
+  function findMiddle(screen) {
+    const width = stage.clientWidth;
+    const height = stage.clientHeight;
+    const inside = (p) => p && p.x >= 0 && p.y >= 0 && p.x <= width && p.y <= height;
+    const points = screen.flat().filter(inside);
+    if (!points.length) return null;
+    // Two passes of "farthest point" find the two extremes of the road as drawn.
+    const farthest = (from) =>
+      points.reduce((best, p) => (distance(p, from) > distance(best, from) ? p : best), points[0]);
+    const a = farthest(points[0]);
+    const b = farthest(a);
+    const middle = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    let best = null;
+    for (const line of screen) {
+      for (let i = 1; i < line.length; i += 1) {
+        if (!line[i - 1] || !line[i]) continue;
+        const near = nearestOnSegment(middle, line[i - 1], line[i]);
+        if (!inside(near)) continue;
+        if (!best || distance(near, middle) < distance(best, middle)) best = near;
+      }
     }
-    note.replaceChildren(title, sentence, source);
+    return best ? map.unproject([best.x, best.y]) : null;
   }
 
   // Boxes in map-area pixels, so the note can be tested against everything already on the map.
@@ -584,15 +731,21 @@ function wireAnnotation({ map, segments, stage }) {
     };
   }
 
-  function obstacles() {
+  // The note never touches these: the title, the controls, the hint line and the "Map info"
+  // button. On a phone the title is a band of its own, and a note under it would lose its name.
+  function hardBoxes() {
+    return ["title-block", "foot-left", "map-buttons", "top-right"]
+      .map(byId)
+      .filter((element) => element.offsetParent !== null && element.offsetWidth > 0)
+      .map((element) => ({ id: element.id, ...boxOf(element, 6) }));
+  }
+
+  // These it avoids where it can: the place labels and the Rome marker.
+  function softBoxes() {
     const boxes = [];
     for (const label of document.querySelectorAll("#place-labels .place-label")) {
-      const shown = label.style.display !== "none" && label.style.visibility !== "hidden";
-      if (shown && Number(label.style.opacity || 1) > 0) boxes.push(boxOf(label, 4));
-    }
-    for (const id of ["title-block", "foot-left", "map-buttons", "top-right"]) {
-      const element = byId(id);
-      if (element.offsetParent !== null) boxes.push(boxOf(element, 6));
+      const shownLabel = label.style.display !== "none" && label.style.visibility !== "hidden";
+      if (shownLabel && Number(label.style.opacity || 1) > 0) boxes.push(boxOf(label, 4));
     }
     for (const marker of map.queryRenderedFeatures({ layers: ["rome_marker"] })) {
       const { x, y } = map.project(marker.geometry.coordinates);
@@ -601,188 +754,191 @@ function wireAnnotation({ map, segments, stage }) {
     return boxes;
   }
 
-  const overlapArea = (a, b) =>
-    Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)) *
-    Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
-
-  // Liang-Barsky clipping: does the line from p to q pass through the box at all?
-  function segmentHitsBox(p, q, box) {
-    let t0 = 0;
-    let t1 = 1;
-    const dx = q.x - p.x;
-    const dy = q.y - p.y;
+  // The middle of the note edge nearest the dot, and which way that edge faces.
+  function nearestEdge(box, from) {
+    const midX = (box.left + box.right) / 2;
+    const midY = (box.top + box.bottom) / 2;
     const edges = [
-      [-dx, p.x - box.left],
-      [dx, box.right - p.x],
-      [-dy, p.y - box.top],
-      [dy, box.bottom - p.y],
+      { x: box.left, y: midY, horizontal: true },
+      { x: box.right, y: midY, horizontal: true },
+      { x: midX, y: box.top, horizontal: false },
+      { x: midX, y: box.bottom, horizontal: false },
     ];
-    for (const [step, room] of edges) {
-      if (step === 0) {
-        if (room < 0) return false;
-      } else {
-        const t = room / step;
-        if (step < 0) t0 = Math.max(t0, t);
-        else t1 = Math.min(t1, t);
-        if (t0 > t1) return false;
-      }
-    }
-    return true;
+    return edges.reduce((best, e) => (distance(e, from) < distance(best, from) ? e : best));
   }
 
-  function roadHits(box) {
-    let hits = 0;
-    for (const coordinates of selectedLines) {
-      let previous = null;
-      for (const lonLat of coordinates) {
-        const point = map.project(lonLat);
-        if (previous && segmentHitsBox(previous, point, box)) hits += 1;
-        previous = point;
-      }
-    }
-    return hits;
-  }
-
-  /* The note may not cover a place label, the Rome marker or the road it describes. I try the four
-     sides of the point in a fixed order and take the first one that is clear; if none is, the one
-     that covers least. Re-running this on every move keeps the note on the road as the globe
-     turns. */
-  function place() {
-    if (!anchor) return;
-    if (map.transform.isLocationOccluded(anchor)) {
+  /* I try eight places round the dot, nearest first, and take the first that keeps off the road,
+     the controls and the labels. Where none does (a road filling a phone screen, say), I search the
+     whole map area on a grid for the place that covers the least road; on a phone that search
+     prefers the foot of the map, just above the bottom sheet. A phone map can be too short for any
+     place clear of the title, the hint line and the buttons at once: then, and only then, the note
+     may cover the hint line, which has done its job once the reader has tapped. Re-running this on
+     every move keeps the note beside its road as the globe turns. */
+  function place(screen = null) {
+    if (shown === null || !anchor) return;
+    if (!visible(anchor)) {
       close();
       return;
     }
-    const { x, y } = map.project(anchor);
+    const projected = screen ?? lines.map((line) => line.map((c) => project(toLngLat(c))));
+    const d = map.project(anchor);
     const width = stage.clientWidth;
     const height = stage.clientHeight;
     const w = note.offsetWidth;
     const h = note.offsetHeight;
-    const lift = Math.min(h / 2, 24);
+    const roadUnder = roadGrid(width, height, projected, 6);
+    const hard = hardBoxes();
+    const soft = softBoxes();
+    const MARGIN = 8;
+    const allowed = (box, hardSet = hard) =>
+      box.left >= MARGIN &&
+      box.top >= MARGIN &&
+      box.right <= width - MARGIN &&
+      box.bottom <= height - MARGIN &&
+      hardSet.every((other) => overlapArea(box, other) === 0) &&
+      overlapArea(box, { left: d.x - 10, top: d.y - 10, right: d.x + 10, bottom: d.y + 10 }) === 0;
+    const covered = (box) => {
+      const padded = { left: box.left - 4, top: box.top - 4, right: box.right + 4, bottom: box.bottom + 4 };
+      return 2000 * roadUnder(padded) + soft.reduce((sum, other) => sum + overlapArea(box, other), 0);
+    };
+    const boxAt = (left, top) => ({ left, top, right: left + w, bottom: top + h });
+    // The small vertical and sideways offsets bend the pen stroke into a curve, as a hand would.
+    const gap = NOTE_GAP_PX;
+    const diagonal = gap * 0.7;
     const candidates = [
-      { side: "right", left: x + NOTE_GAP_PX, top: y - lift, endX: 0, endY: lift },
-      { side: "left", left: x - NOTE_GAP_PX - w, top: y - lift, endX: w, endY: lift },
-      { side: "above", left: x - 12, top: y - NOTE_GAP_PX - h, endX: 0, endY: h },
-      { side: "below", left: x - 12, top: y + NOTE_GAP_PX, endX: 0, endY: 0 },
+      boxAt(d.x + gap, d.y - h / 2 - 16),
+      boxAt(d.x - gap - w, d.y - h / 2 - 16),
+      boxAt(d.x - w / 2 + 28, d.y - gap - h),
+      boxAt(d.x - w / 2 + 28, d.y + gap),
+      boxAt(d.x + diagonal, d.y - diagonal - h),
+      boxAt(d.x - diagonal - w, d.y - diagonal - h),
+      boxAt(d.x + diagonal, d.y + diagonal),
+      boxAt(d.x - diagonal - w, d.y + diagonal),
     ];
-    const boxes = obstacles();
-    // The button strip is never covered: a note under it would hide the controls and be hidden by
-    // them. The map area already ends above the timeline band and the bottom sheet.
-    const buttons = boxOf(byId("map-buttons"), 4);
-    const hitsButtons = (box) => overlapArea(box, buttons) > 0;
-    let best = null;
-    for (const candidate of candidates) {
-      const box = {
-        left: candidate.left,
-        top: candidate.top,
-        right: candidate.left + w,
-        bottom: candidate.top + h,
+    const phone = matchMedia(PHONE_QUERY).matches;
+    function search(hardSet) {
+      let found = null;
+      let bestScore = Infinity;
+      const consider = (box) => {
+        if (!allowed(box, hardSet)) return;
+        const edge = nearestEdge(box, d);
+        const score =
+          covered(box) + 0.5 * distance(edge, d) + (phone ? 1.5 * (height - box.bottom) : 0);
+        if (score < bestScore) {
+          bestScore = score;
+          found = box;
+        }
       };
-      if (box.left < 8 || box.top < 8 || box.right > width - 8 || box.bottom > height - 8) continue;
-      if (hitsButtons(box)) continue;
-      // A road crossing the note hides more than a label corner does, so it weighs more.
-      const covered =
-        boxes.reduce((sum, other) => sum + overlapArea(box, other), 0) + 2000 * roadHits(box);
-      if (!best || covered < best.covered) best = { ...candidate, covered };
-      if (covered === 0) break;
-    }
-    if (!best) {
-      // No side fits as it is (a small phone map, say). I push the note back inside the map area,
-      // on the side of the point with more room, and then left of the buttons if it still meets
-      // them. The leader line stretches to wherever the note lands.
-      const fallback = candidates[x < width / 2 ? 0 : 1];
-      const top = Math.max(8, Math.min(height - h - 8, fallback.top));
-      let left = Math.max(8, Math.min(width - w - 8, fallback.left));
-      if (hitsButtons({ left, top, right: left + w, bottom: top + h })) {
-        left = Math.max(8, buttons.left - w);
+      candidates.forEach(consider);
+      for (let top = MARGIN; top + h <= height - MARGIN; top += 12) {
+        for (let left = MARGIN; left + w <= width - MARGIN; left += 12) consider(boxAt(left, top));
       }
-      const side = left + w / 2 < x ? "left" : "right";
-      best = { ...fallback, side, left, top, endX: side === "left" ? w : 0 };
+      return found;
+    }
+    let best = candidates.find((box) => allowed(box) && covered(box) === 0) ?? search(hard);
+    if (!best && phone) best = search(hard.filter((box) => box.id !== "foot-left"));
+    if (!best) {
+      // A map area smaller than the note leaves no good place: it goes in the top left corner.
+      best = boxAt(MARGIN, MARGIN);
     }
     note.style.transform = `translate(${best.left.toFixed(1)}px, ${best.top.toFixed(1)}px)`;
-    note.dataset.side = best.side;
-    line.setAttribute("x1", String(x));
-    line.setAttribute("y1", String(y));
-    line.setAttribute("x2", String(best.left + best.endX));
-    line.setAttribute("y2", String(best.top + best.endY));
-    ring.setAttribute("cx", String(x));
-    ring.setAttribute("cy", String(y));
-    note.classList.toggle("flipped", best.side === "left");
+    drawPen(d, best);
+    drawTicks();
   }
 
-  function show(s, lngLat) {
-    const changed = s !== shownSegment;
-    shownSegment = s;
-    anchor = lngLat;
-    if (changed) {
-      fill(segments[s]);
-      // The pieces of this road on screen, drawn again on top as the one highlight.
-      const pieces = map.queryRenderedFeatures({ layers, filter: ["==", ["get", "s"], s] });
-      selectedLines = pieces.flatMap(({ geometry }) =>
-        geometry.type === "MultiLineString" ? geometry.coordinates : [geometry.coordinates],
-      );
-      hoverSource.setData({
-        type: "FeatureCollection",
-        features: pieces.map((piece) => ({
-          type: "Feature",
-          properties: {},
-          geometry: piece.geometry,
-        })),
-      });
+  function drawPen(d, box) {
+    const e = nearestEdge(box, d);
+    // A cubic that leaves the dot along the road's side and meets the note square to its edge.
+    const c1 = e.horizontal ? { x: (d.x + e.x) / 2, y: d.y } : { x: d.x, y: (d.y + e.y) / 2 };
+    const c2 = e.horizontal ? { x: (d.x + e.x) / 2, y: e.y } : { x: e.x, y: (d.y + e.y) / 2 };
+    const f = (n) => n.toFixed(1);
+    stroke.setAttribute(
+      "d",
+      `M${f(d.x)} ${f(d.y)}C${f(c1.x)} ${f(c1.y)} ${f(c2.x)} ${f(c2.y)} ${f(e.x)} ${f(e.y)}`,
+    );
+    dot.setAttribute("cx", f(d.x));
+    dot.setAttribute("cy", f(d.y));
+  }
+
+  // A tick across each end of the road, square to it, like the stops on an engraved route.
+  function drawTicks() {
+    const HALF_PX = 8;
+    ticks.forEach((tick, index) => {
+      const end = ends[index];
+      const p = end && project(end.end);
+      const q = end && project(end.inward);
+      if (!p || !q) {
+        tick.setAttribute("visibility", "hidden");
+        return;
+      }
+      const length = distance(p, q) || 1;
+      const nx = (-(q.y - p.y) / length) * HALF_PX;
+      const ny = ((q.x - p.x) / length) * HALF_PX;
+      tick.setAttribute("x1", (p.x + nx).toFixed(1));
+      tick.setAttribute("y1", (p.y + ny).toFixed(1));
+      tick.setAttribute("x2", (p.x - nx).toFixed(1));
+      tick.setAttribute("y2", (p.y - ny).toFixed(1));
+      tick.setAttribute("visibility", "visible");
+    });
+  }
+
+  // Each opening fades in once; restarting the animation needs a style read in between.
+  function fadeIn() {
+    for (const element of [note, leader]) {
+      element.classList.remove("opening");
+      void element.offsetWidth;
+      element.classList.add("opening");
     }
+  }
+
+  function show(s, fallbackLngLat) {
+    shown = s;
+    setMark(s);
+    live.textContent = fillNote(note, segments[s]);
     note.hidden = false;
     leader.classList.add("on");
-    map.getCanvas().style.cursor = "pointer";
-    place();
+    const screen = readGeometry();
+    anchor = findMiddle(screen) ?? fallbackLngLat;
+    fadeIn();
+    place(screen);
   }
 
-  function roadAt(point, radiusPx) {
+  // The tiles in memory change as the reader moves, so the ends are read again once the map
+  // settles, and the middle too if the old one has left the screen.
+  map.on("idle", () => {
+    if (shown === null) return;
+    const screen = readGeometry();
+    const d = anchor && project(anchor);
+    const onScreen = d && d.x >= 0 && d.y >= 0 && d.x <= stage.clientWidth && d.y <= stage.clientHeight;
+    if (!onScreen) anchor = findMiddle(screen) ?? anchor;
+    place(screen);
+  });
+
+  // A 10 px box round the click, so a thin secondary road is easy to hit.
+  function roadAt(point) {
+    const HALF_BOX_PX = 5;
     const near = map.queryRenderedFeatures(
       [
-        [point.x - radiusPx, point.y - radiusPx],
-        [point.x + radiusPx, point.y + radiusPx],
+        [point.x - HALF_BOX_PX, point.y - HALF_BOX_PX],
+        [point.x + HALF_BOX_PX, point.y + HALF_BOX_PX],
       ],
       { layers },
     );
     return near.length ? near[0].properties.s : null;
   }
 
-  // Hover shows the note. A click or tap pins it, so the pointer can reach the link inside it.
-  map.on("mousemove", (event) => {
-    if (pinned) return;
-    const s = roadAt(event.point, 4);
-    if (s === null) {
-      if (shownSegment !== null) close();
-    } else if (s !== shownSegment) {
-      show(s, event.lngLat);
-    }
-  });
-  map.on("mouseout", () => {
-    if (!pinned && shownSegment !== null) close();
-  });
   map.on("click", (event) => {
-    // A fingertip is far less exact than a mouse, so a tap searches a wider box.
-    const isTouch =
-      event.originalEvent.pointerType === "touch" || matchMedia("(hover: none)").matches;
-    const s = roadAt(event.point, isTouch ? 14 : 4);
-    if (s === null) {
-      close();
-      return;
-    }
-    show(s, event.lngLat);
-    pinned = true;
-    note.classList.add("pinned");
+    const s = roadAt(event.point);
+    // A click on nothing, or on the road already open, closes the note.
+    if (s === null || s === shown) close();
+    else show(s, event.lngLat);
   });
-  map.on("move", place);
+  map.on("move", () => place());
 
   return {
-    isOpen: () => shownSegment !== null,
+    isOpen: () => shown !== null,
     close,
-    openAt(s, lngLat) {
-      show(s, lngLat);
-      pinned = true;
-      note.classList.add("pinned");
-    },
+    openAt: (s, lngLat) => show(s, lngLat),
   };
 }
 

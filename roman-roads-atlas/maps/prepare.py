@@ -496,7 +496,7 @@ def write_draw_curve(piece_d_km: np.ndarray, piece_km: np.ndarray, total_km: flo
 
 
 def write_segments(roads: gpd.GeoDataFrame, length_km: np.ndarray) -> None:
-    """Write the fields the hover card shows, in segment order, so `s` is simply the list index."""
+    """Write the fields the click note shows, in segment order, so `s` is simply the list index."""
     records = []
     for s, row in enumerate(roads.itertuples(index=False)):
         records.append(
@@ -796,7 +796,7 @@ def write_road_tiles(features: list[dict], piece_km: np.ndarray, chains: list[di
     """Write the road pieces and the certainty chains as two layers of one PMTiles archive.
 
     Each piece keeps only what the map reads: d (network km from Rome, rounded up to the whole km,
-    the same step the draw curve counts in), s (its segment, for the hover note), t (type) and
+    the same step the draw curve counts in), s (its segment, for the click note), t (type) and
     c (certainty). Tiles are gzipped, as the PMTiles spec expects for vector tiles.
     """
     layers = {}

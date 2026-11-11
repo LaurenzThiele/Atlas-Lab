@@ -972,16 +972,19 @@ body.folded #timeline {
   font-size: 14px;
 }
 
-/* 7. Annotation: a leader line and a note on the map. A wash of paper keeps the text readable over
-   dense roads, because ink on Rubric alone falls far under 4.5:1. It is not a card: no border, no
-   shadow, only the thin rule that ties it to the leader. */
+/* 7. Annotation: the title cartouche of an engraved plate. A Parchment card inside a double rule
+   of Iron-gall, 1 px, a 3 px gap, 1 px, with a solid square on each corner of the inner rule. A
+   pen stroke ties it to the middle of its road. Square corners, no shadow, no tip, no close cross:
+   it closes on a click elsewhere, a second click on the same road, or Escape. */
 #leader:not(.on) {
   display: none;
 }
 
+/* Above the hint line (30), which a phone note may cover as a last resort, and below the sheet
+   (40), which slides over the map when it opens fully. */
 #leader {
   position: absolute;
-  z-index: 26;
+  z-index: 31;
   inset: 0;
   width: 100%;
   height: 100%;
@@ -989,56 +992,132 @@ body.folded #timeline {
   overflow: visible;
 }
 
-#leader line {
+#leader .pen {
+  fill: none;
   stroke: var(--iron-gall);
   stroke-width: 1;
 }
 
-#leader circle {
-  fill: none;
-  stroke: var(--rubric);
-  stroke-width: 1.5;
+#leader .dot {
+  fill: var(--rubric);
+}
+
+#leader .tick {
+  stroke: var(--iron-gall);
+  stroke-width: 1.6;
 }
 
 #annotation {
   position: absolute;
-  z-index: 27;
+  z-index: 32;
   left: 0;
   top: 0;
-  width: max-content;
-  max-width: 250px;
-  padding: 4px 8px 5px 10px;
-  background: rgb(239 228 200 / 94%);
-  border-left: 1px solid var(--iron-gall);
-  font-size: 14px;
-  line-height: 1.35;
-  pointer-events: none;
-}
-
-#annotation.flipped {
-  border-left: 0;
-  border-right: 1px solid var(--iron-gall);
-}
-
-#annotation.pinned {
+  box-sizing: border-box;
+  width: 206px;
+  padding: 3px;
+  background: var(--parchment);
+  border: 1px solid var(--iron-gall);
+  color: var(--iron-gall);
+  text-align: center;
+  /* The note takes its own clicks, so a click on it never falls through to the map and closes it. */
   pointer-events: auto;
 }
 
+#annotation .frame {
+  position: relative;
+  padding: 10px 12px;
+  border: 1px solid var(--iron-gall);
+}
+
+/* Each square is centred on a corner of the inner rule, so it bridges the gap to the outer one. */
+#annotation .corner {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  background: var(--iron-gall);
+}
+
+#annotation .nw,
+#annotation .ne {
+  top: -4px;
+}
+
+#annotation .sw,
+#annotation .se {
+  bottom: -4px;
+}
+
+#annotation .nw,
+#annotation .sw {
+  left: -4px;
+}
+
+#annotation .ne,
+#annotation .se {
+  right: -4px;
+}
+
 #annotation h2 {
-  margin: 0 0 2px;
-  font: 600 15px/1.2 var(--display);
-  letter-spacing: 0.02em;
+  margin: 0 0 4px;
+  font: 700 17px/1.2 var(--display);
+  color: var(--rubric);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-variant-ligatures: none;
+  overflow-wrap: break-word;
 }
 
 #annotation p {
   margin: 0;
+  font-size: 14.5px;
+  line-height: 1.35;
+}
+
+#annotation b {
+  font-weight: 600;
 }
 
 #annotation .source {
-  margin-top: 3px;
-  font-size: 13px;
+  display: -webkit-box;
+  margin-top: 5px;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.35;
   color: var(--quiet);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   overflow-wrap: anywhere;
+}
+
+/* A short fade, eased out, on every opening; none at all when the reader asks for less motion. */
+@keyframes note-in {
+  from {
+    opacity: 0;
+  }
+}
+
+#annotation.opening,
+#leader.opening {
+  animation: note-in 150ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #annotation.opening,
+  #leader.opening {
+    animation: none;
+  }
+}
+
+/* Read aloud, never seen: the live region that repeats the note's words. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 /* 8. The hint line: what a click does, then the gestures, in a short block at the foot of the map.
@@ -1256,9 +1335,5 @@ body.folded #timeline {
 
   .for-touch {
     display: inline;
-  }
-
-  #annotation {
-    max-width: 210px;
   }
 }
