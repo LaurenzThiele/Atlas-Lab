@@ -34,24 +34,54 @@ ellipsoid instead.
 
 ## How I made it
 
-1. **[data/download.py](data/download.py)** downloads one GeoPackage from Zenodo, checked against
-   the MD5 that Zenodo lists for it, and three Natural Earth layers (land, lakes, rivers). It
-   records each file with its date, size and SHA-256 in `data/raw/sources.json`, and notes for each
-   source whether its licence lets me share files made from it.
-2. **[data/key_figures.py](data/key_figures.py)** measures length on the ellipsoid, not on the
-   projection. The file is in World Mercator, which stretches every distance by 1 / cos(latitude),
-   so I measure each segment with `pyproj.Geod` on WGS84. The total matches the paper's.
-3. **[maps/prepare.py](maps/prepare.py), the network**: I snap the segment ends that lie within
-   25 m of each other into the nodes of one graph, run Dijkstra from Rome, and cut every road into
-   pieces of at most 3 km that carry their network distance from Rome, `d`. That one number drives
-   the draw from Rome and the running counter (`draw_curve.json`).
-4. **maps/prepare.py, the plate**: Natural Earth land, lakes and rivers clipped to the empire, the
-   engraved water lines as rings buffered out from the coast, and a 5 degree graticule. The roads
-   and the plate are cut into vector tiles, each in one PMTiles archive, so the browser loads only
-   the part on screen.
-5. **The viewer, [maps/](maps/)**: MapLibre GL JS on a globe. A filter on `d` draws the roads
-   outward from Rome, and line patterns show how certain scholars are of each route, so colour
-   (road type) and pattern (certainty) never compete.
+1. **The data.** [data/download.py](data/download.py) downloads one GeoPackage of every known
+   Roman road from Zenodo, checked against the MD5 that Zenodo lists for it, plus three Natural
+   Earth layers (land, lakes, rivers), and records each file with its date, size and SHA-256 in
+   `data/raw/sources.json`. The GeoPackage is stored in World Mercator, which stretches every
+   distance by 1 / cos(latitude), so [data/key_figures.py](data/key_figures.py) measures each
+   segment on the WGS84 ellipsoid with `pyproj.Geod`; the total matches the paper's.
+
+2. **Draw from Rome.** [maps/prepare.py](maps/prepare.py) snaps the segment ends that lie within
+   25 m of each other into the nodes of one graph, runs Dijkstra from Rome, and cuts every road
+   into pieces of at most 3 km that each carry `d`, their distance from Rome along the network.
+   In the browser one filter on `d` draws the roads outward from Rome, and the timeline only
+   moves that number ([maps/main.js](https://github.com/LaurenzThiele/Atlas-Lab/blob/main/roman-roads-atlas/maps/main.js#L730-L733)):
+
+   ```js
+     function solidFilter(type) {
+       const clauses = [
+         ["==", ["get", "t"], type],
+         ["<=", ["get", "d"], state.drawKm],
+   ```
+
+3. **Show what's guessed.** Colour is the road type (main roads Rubric red, secondary roads
+   Sepia), and the line pattern is how sure scholars are of each route: certain solid,
+   conjectured dashed, hypothetical dotted. Each certainty class is its own line layer with its
+   own dash pattern ([maps/main.js](https://github.com/LaurenzThiele/Atlas-Lab/blob/main/roman-roads-atlas/maps/main.js#L139-L146)), so colour and pattern never compete:
+
+   ```js
+   function certaintyLayer(certainty) {
+     const dash = CERTAINTY_DASH[certainty];
+     return {
+       id: `roads_certainty_${certainty}`,
+       type: "line",
+       source: "roads",
+       "source-layer": "certainty",
+       filter: ["==", ["get", "c"], certainty],
+   ```
+
+4. **The look.** The map is drawn like a plate from a 19th-century hand-coloured atlas.
+   prepare.py clips Natural Earth's land, lakes and rivers to the empire, buffers the coast out to
+   sea in fading rings like an engraver's water lines, and writes a 5 degree graticule. main.js
+   inks them in six colours only (Parchment land, Verdigris sea, Ink blue water lines, Rubric and
+   Sepia roads, Iron-gall text and rules) and lays a paper grain made from a fixed seed over the
+   globe, so the plate looks the same on every load.
+
+5. **Make it light.** As GeoJSON the roads alone were too big to load at once, so prepare.py cuts
+   the roads and the plate into vector tiles, each set in one PMTiles archive. The browser reads
+   only the tiles on screen, with range requests, which GitHub Pages serves like any other file.
+   Measured on 11 November 2026: the opening view transfers 1.0 MB until the map is drawn, and the
+   whole built site in `maps/dist/` is 12.5 MB.
 
 ## Run it yourself
 
