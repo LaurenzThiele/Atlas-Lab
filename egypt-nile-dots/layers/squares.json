@@ -1,0 +1,21 @@
+{
+ "count": 102881,
+ "count_95": 22232,
+ "blocks": [
+  "people float32",
+  "cum_before float32",
+  "col uint16 (1 km columns east of grid.x0_m)",
+  "row uint16 (1 km rows south of grid.y0_m)",
+  "area uint8 (hundredths of a km2 inside Egypt; 100 = a whole square)"
+ ],
+ "byte_order": "little-endian, one block after the other",
+ "order": "densest first (people per km2), the ranking of area_share_for",
+ "cum_before": "share of Egypt's people in all denser squares; in the set if < threshold",
+ "square_m": 1000,
+ "grid": {
+  "crs": "ESRI:54009",
+  "x0_m": 2258000.0,
+  "y0_m": 3838000.0
+ },
+ "max_per_km2": 268822
+}

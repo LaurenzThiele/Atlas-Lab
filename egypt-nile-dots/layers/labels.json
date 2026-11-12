@@ -1,0 +1,116 @@
+[
+ {
+  "name": "Cairo",
+  "lon": 31.2357,
+  "lat": 30.0444,
+  "kind": "town"
+ },
+ {
+  "name": "Giza",
+  "lon": 31.2089,
+  "lat": 30.0131,
+  "kind": "town"
+ },
+ {
+  "name": "Alexandria",
+  "lon": 29.9187,
+  "lat": 31.2001,
+  "kind": "town"
+ },
+ {
+  "name": "Luxor",
+  "lon": 32.6396,
+  "lat": 25.6872,
+  "kind": "town"
+ },
+ {
+  "name": "Aswan",
+  "lon": 32.8998,
+  "lat": 24.0889,
+  "kind": "town"
+ },
+ {
+  "name": "Siwa",
+  "lon": 25.5195,
+  "lat": 29.2032,
+  "kind": "town"
+ },
+ {
+  "name": "Kharga",
+  "lon": 30.5465,
+  "lat": 25.439,
+  "kind": "town"
+ },
+ {
+  "name": "Nile",
+  "lon": 31.25,
+  "lat": 27.6,
+  "kind": "water"
+ },
+ {
+  "name": "Nile Delta",
+  "lon": 31.0,
+  "lat": 30.95,
+  "kind": "delta"
+ },
+ {
+  "name": "Lake Nasser",
+  "lon": 32.3,
+  "lat": 22.9,
+  "kind": "water"
+ },
+ {
+  "name": "Western Desert",
+  "lon": 27.5,
+  "lat": 26.5,
+  "kind": "desert"
+ },
+ {
+  "name": "Eastern Desert",
+  "lon": 33.3,
+  "lat": 26.3,
+  "kind": "desert"
+ },
+ {
+  "name": "Sinai",
+  "lon": 33.8,
+  "lat": 29.5,
+  "kind": "desert"
+ },
+ {
+  "name": "Mediterranean Sea",
+  "lon": 29.5,
+  "lat": 32.6,
+  "kind": "sea"
+ },
+ {
+  "name": "Red Sea",
+  "lon": 35.6,
+  "lat": 25.0,
+  "kind": "sea"
+ },
+ {
+  "name": "Sahara",
+  "lon": 25.5,
+  "lat": 25.0,
+  "kind": "desert"
+ },
+ {
+  "name": "Libya",
+  "lon": 23.0,
+  "lat": 27.0,
+  "kind": "country"
+ },
+ {
+  "name": "Sudan",
+  "lon": 31.0,
+  "lat": 20.5,
+  "kind": "country"
+ },
+ {
+  "name": "Egypt",
+  "lon": 29.3,
+  "lat": 27.8,
+  "kind": "egypt"
+ }
+]
