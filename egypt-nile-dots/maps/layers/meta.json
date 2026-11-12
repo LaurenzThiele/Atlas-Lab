@@ -1,0 +1,36 @@
+{
+ "sources": [
+  {
+   "name": "GHS-POP R2023A, epoch 2025, 100 m, tile R6_C21",
+   "downloaded": "2026-11-11"
+  },
+  {
+   "name": "GHS-POP R2023A, epoch 2025, 100 m, tile R6_C22",
+   "downloaded": "2026-11-11"
+  },
+  {
+   "name": "GHS-POP R2023A, epoch 2025, 100 m, tile R7_C21",
+   "downloaded": "2026-11-11"
+  },
+  {
+   "name": "GHS-POP R2023A, epoch 2025, 100 m, tile R7_C22",
+   "downloaded": "2026-11-11"
+  },
+  {
+   "name": "Natural Earth 1:10m admin 0 countries (v5.1)",
+   "downloaded": "2026-11-11"
+  },
+  {
+   "name": "Natural Earth 1:10m rivers and lake centerlines",
+   "downloaded": "2026-11-11"
+  },
+  {
+   "name": "Natural Earth 1:10m lakes",
+   "downloaded": "2026-11-11"
+  }
+ ],
+ "nile_km": 1230,
+ "total_people": 115523006,
+ "egypt_km2": 1005130,
+ "max_per_km2": 268822
+}

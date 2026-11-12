@@ -1,0 +1,146 @@
+/* The map's own look: the place labels drawn on it. Why a separate file from style.css: createMap()
+   draws the map without the page's interface, and the labels are part of the map, so a script
+   that only calls createMap() still gets them right. Every name has a 2 px halo of Deshret sand,
+   so it stays clear of the dots and the Nile that may run under it. */
+
+.map-labels {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 2;
+  --label-scale: 1;
+  --halo-color: #eadbc0;
+  /* Rings of small offsets in sand, close enough that no dark dot shows between them. */
+  --halo:
+    2px 0 0.5px var(--halo-color), -2px 0 0.5px var(--halo-color), 0 2px 0.5px var(--halo-color),
+    0 -2px 0.5px var(--halo-color), 1.4px 1.4px 0.5px var(--halo-color),
+    -1.4px 1.4px 0.5px var(--halo-color), 1.4px -1.4px 0.5px var(--halo-color),
+    -1.4px -1.4px 0.5px var(--halo-color), 1px 0 0.5px var(--halo-color),
+    -1px 0 0.5px var(--halo-color), 0 1px 0.5px var(--halo-color), 0 -1px 0.5px var(--halo-color),
+    1.8px 0.8px 0.5px var(--halo-color), -1.8px 0.8px 0.5px var(--halo-color),
+    1.8px -0.8px 0.5px var(--halo-color), -1.8px -0.8px 0.5px var(--halo-color),
+    0.8px 1.8px 0.5px var(--halo-color), -0.8px 1.8px 0.5px var(--halo-color),
+    0.8px -1.8px 0.5px var(--halo-color), -0.8px -1.8px 0.5px var(--halo-color);
+}
+
+/* The marker has no size: the text hangs off it on the side each label asks for. */
+.map-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  will-change: transform;
+}
+
+.map-label .text {
+  position: absolute;
+  white-space: nowrap;
+  line-height: 1;
+  text-shadow: var(--halo);
+  font-variant-ligatures: none;
+}
+
+.map-label[data-side="center"] .text {
+  transform: translate(-50%, -50%);
+}
+
+.map-label[data-side="right"] .text {
+  left: calc(9px * var(--label-scale));
+  transform: translateY(-50%);
+}
+
+.map-label[data-side="left"] .text {
+  right: calc(9px * var(--label-scale));
+  transform: translateY(-50%);
+}
+
+/* The Nile's name starts at its anchor, east of the river, and runs away from the valley. */
+.map-label[data-side="east"] .text {
+  left: 0;
+  transform: translateY(-50%);
+}
+
+/* Towns: Reem Kufi Medium in silt, with a small silt point ringed in sand where the town is. */
+.map-label[data-kind="town"] .text {
+  font: 500 calc(15px * var(--label-scale)) "Reem Kufi", sans-serif;
+  color: #211c17;
+}
+
+.map-label[data-kind="town"]::before {
+  content: "";
+  position: absolute;
+  left: calc(-2.5px * var(--label-scale));
+  top: calc(-2.5px * var(--label-scale));
+  width: calc(5px * var(--label-scale));
+  height: calc(5px * var(--label-scale));
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: #211c17;
+  box-shadow: 0 0 0 calc(1.5px * var(--label-scale)) #eadbc0;
+}
+
+/* Water: the Nile and Lake Nasser in Reem Kufi, Egyptian blue like the water itself. */
+.map-label[data-kind="water"] .text {
+  font: 500 calc(16px * var(--label-scale)) "Reem Kufi", sans-serif;
+  color: #1f4e8c;
+}
+
+.map-label[data-kind="delta"] .text {
+  font: 500 calc(16px * var(--label-scale)) "Reem Kufi", sans-serif;
+  color: #211c17;
+}
+
+/* Seas: italic text face in Egyptian blue, the old convention for water. IBM Plex Sans Arabic has
+   no italic, so the browser slants the upright face. */
+.map-label[data-kind="sea"] .text {
+  font: italic 400 calc(14px * var(--label-scale)) "IBM Plex Sans Arabic", sans-serif;
+  color: #1f4e8c;
+}
+
+/* Deserts: wide open names, spaced out by 20%, in the quiet dune shadow (4.75:1 on sand).
+   Countries lie on the darker far sand, where dune shadow falls to 4.1:1, so they take silt. */
+.map-label[data-kind="desert"] .text,
+.map-label[data-kind="country"] .text {
+  font: 500 calc(13px * var(--label-scale)) "Reem Kufi", sans-serif;
+  letter-spacing: 0.2em;
+  color: #6e5b43;
+}
+
+.map-label[data-kind="country"] .text {
+  color: #211c17;
+}
+
+.map-label[data-kind="egypt"] .text {
+  font: 700 calc(18px * var(--label-scale)) "Reem Kufi", sans-serif;
+  letter-spacing: 0.2em;
+  color: #211c17;
+}
+
+/* Spaced letters add space after the last one too. The same space in front keeps the name
+   centred on its point. */
+.map-label[data-kind="desert"] .text,
+.map-label[data-kind="country"] .text,
+.map-label[data-kind="egypt"] .text {
+  padding-left: 0.2em;
+}
+
+/* A highlighted label. The public page has no red ochre (it would vanish on the
+   red steps of the People layer), so a highlighted name is Kemet silt in the bold weight, still
+   on its sand halo. */
+.map-label.hl .text {
+  color: #211c17;
+  font-weight: 700;
+}
+
+/* Highlights in red ochre, the piece's highlight colour, for any page that scripts its own views
+   on the dots: it adds the class ochre-highlights to the map container. */
+.ochre-highlights .map-label.hl .text {
+  color: #983a23;
+  font-weight: 500;
+}
+
+.ochre-highlights .map-label.hl[data-kind="town"]::before {
+  background: #983a23;
+}

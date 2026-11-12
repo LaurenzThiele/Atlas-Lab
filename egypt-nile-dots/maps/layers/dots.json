@@ -1,0 +1,21 @@
+{
+ "count": 462055,
+ "count_sparse": 23171,
+ "count_dense": 438884,
+ "box": [
+  24.677999999999997,
+  21.983999999999998,
+  36.909,
+  31.666
+ ],
+ "people_per_dot": 250,
+ "dot_people": 115513750,
+ "grid_people": 115523006,
+ "blocks": [
+  "lon uint16, one per dot: desert dots first, then valley dots, each south to north",
+  "lat counts uint16 x 65536 for the desert dots: how many dots on each lat step",
+  "lat counts uint16 x 65536 for the valley dots"
+ ],
+ "byte_order": "little-endian",
+ "seed": 7
+}

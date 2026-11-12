@@ -1,0 +1,42 @@
+[
+  {
+    "id": "share_people_pct",
+    "value": 95.0,
+    "unit": "% of Egypt's population",
+    "display": "95%",
+    "source": "GHS-POP R2023A, epoch 2025 (European Commission JRC)",
+    "method": "Fixed threshold, the same 95% that published sources give for the Nile valley and delta; GHS-POP total inside the border is 115.5 million"
+  },
+  {
+    "id": "share_land_pct",
+    "value": 2.2,
+    "unit": "% of Egypt's area",
+    "display": "2.2%",
+    "source": "GHS-POP R2023A, epoch 2025 (European Commission JRC); border Natural Earth 1:10m admin 0",
+    "method": "1 km cells (10 x 10 GHS-POP cells, Mollweide) ranked by density; area of the densest cells holding 95% of people (22,090 km2) / Egypt's area (1,005,130 km2). On 100 m cells it is 0.9%"
+  },
+  {
+    "id": "inhabited_density",
+    "value": 4968,
+    "unit": "people per km2 on the squares where 95% of Egyptians live",
+    "display": "4,970",
+    "source": "GHS-POP R2023A, epoch 2025 (European Commission JRC)",
+    "method": "95% of the GHS-POP total (109.7 million) / the area of the 95% squares (22,090 km2)"
+  },
+  {
+    "id": "egypt_density",
+    "value": 114.9,
+    "unit": "people per km2 over all of Egypt",
+    "display": "115",
+    "source": "GHS-POP R2023A, epoch 2025 (European Commission JRC); border Natural Earth 1:10m admin 0",
+    "method": "GHS-POP total (115.5 million) / Egypt's area (1,005,130 km2), the same grid and border as the other figures"
+  },
+  {
+    "id": "density_ratio",
+    "value": 43.2,
+    "unit": "times Egypt's average density, on the squares where 95% live",
+    "display": "43",
+    "source": "GHS-POP R2023A, epoch 2025 (European Commission JRC); border Natural Earth 1:10m admin 0",
+    "method": "inhabited_density / egypt_density, both unrounded"
+  }
+]

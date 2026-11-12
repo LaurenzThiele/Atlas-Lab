@@ -1,0 +1,19 @@
+[project]
+name = "egypt-nile-dots"
+version = "0.1.0"
+description = "AtlasLab: why almost nobody lives in most of Egypt"
+requires-python = ">=3.12"
+dependencies = [
+    "geopandas>=1.2.0",
+    "numpy>=2.5.4",
+    "pyproj>=3.8.0",
+    "rasterio>=1.5.2",
+    "requests>=2.34.2",
+    "shapely>=2.2.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100

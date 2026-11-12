@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Where Egypt's people live | Atlas Lab</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="favicon-32.png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <meta
+      name="description"
+      content="An interactive map of where Egypt's people live: 95% of them on just 2.2% of its land, along the Nile."
+    />
+  </head>
+  <!-- I set the furniture of this map the way a printed atlas sets its title, key and notes. All of
+       it lives in this file and ui.js: createMap() in main.js draws the map alone, without any of it. -->
+  <body class="atlas">
+    <div
+      id="map"
+      role="application"
+      aria-label="Map of where Egypt's people live, from smoothed in 2D to 1 km columns in 3D. Click a square to see how many people live there."
+    ></div>
+    <div id="grain" aria-hidden="true"></div>
+    <div id="vignette" aria-hidden="true"></div>
+
+    <header id="title">
+      <h1>Where Egypt's people live</h1>
+      <p>
+        <b id="lede-people">95%</b> of Egypt's people live on just <b id="lede-land">2.2%</b> of its
+        land.
+      </p>
+    </header>
+
+    <!-- The hover marks: a sand casing under the silt corners (or the closed frame when pinned). -->
+    <svg id="frame" aria-hidden="true" hidden>
+      <g class="c-tl"><path class="casing" /><path class="mark" /></g>
+      <g class="c-tr"><path class="casing" /><path class="mark" /></g>
+      <g class="c-br"><path class="casing" /><path class="mark" /></g>
+      <g class="c-bl"><path class="casing" /><path class="mark" /></g>
+    </svg>
+    <div id="annotation" role="status" hidden></div>
+
+    <div id="foot">
+      <!-- The one hint line: what a click does, then the gestures. Touch screens get their own words. -->
+      <p id="hint">
+        <span class="wide">
+          <i>Click</i> a square to see how many people live there. <i>Drag</i> to move, <i>Ctrl + drag</i> or <i>right-drag</i> to tilt and turn,
+          <i>scroll</i> to zoom.
+        </span>
+        <span class="narrow">
+          <i>Tap</i> a square to see how many people live there.
+          <i>Drag</i> to move, <i>two fingers</i> to tilt and turn, <i>pinch</i> to zoom.
+        </span>
+      </p>
+      <!-- No timeline on this map, so its one sequence, the opening, replays from here. -->
+      <button id="replay" type="button">
+        <span class="play"
+          ><svg viewBox="0 0 10 10" width="9" height="9" aria-hidden="true"><path d="M1.5 1l7 4-7 4z" /></svg>
+          Replay the population</span
+        >
+        <span class="key">or press Space</span>
+      </button>
+    </div>
+
+    <div id="buttons" role="group" aria-label="Map view">
+      <button id="zoom-in" type="button" aria-label="Zoom in">
+        <svg viewBox="0 0 20 20" width="16" height="16"><path d="M10 5v10M5 10h10" /></svg>
+      </button>
+      <button id="zoom-out" type="button" aria-label="Zoom out">
+        <svg viewBox="0 0 20 20" width="16" height="16"><path d="M5 10h10" /></svg>
+      </button>
+      <button id="north" class="group" type="button" aria-label="Reset north and tilt">
+        <svg viewBox="0 0 20 20" width="16" height="16">
+          <path d="M10 3.5l3.2 12.5L10 13.4 6.8 16z" />
+        </svg>
+      </button>
+      <button id="tilt" class="group" type="button" aria-label="Tilt to 3D" data-on="false">
+        <svg viewBox="0 0 20 20" width="16" height="16">
+          <path d="M10 3.5l6 3.2v6.6l-6 3.2-6-3.2V6.7zM4 6.7l6 3.3 6-3.3M10 10v6.5" />
+        </svg>
+      </button>
+      <button id="start-view" type="button" aria-label="Back to the start view">
+        <svg viewBox="0 0 20 20" width="16" height="16">
+          <path d="M5 8V5h3M15 8V5h-3M5 12v3h3M15 12v3h-3" />
+        </svg>
+      </button>
+    </div>
+    <p id="tip" class="tip" aria-hidden="true" hidden></p>
+
+    <button id="sheet-open" type="button" aria-label="Show the sheet" hidden>
+      <svg class="sheet-icon" viewBox="0 0 18 18" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"><rect x="2" y="3" width="14" height="12"/><rect x="11" y="3" width="5" height="12" fill="currentColor" stroke="none"/><path d="M8 6.5L5.5 9 8 11.5"/></svg>
+      Map info
+    </button>
+
+    <aside id="sheet" aria-label="Map info: layers, figures and sources">
+      <button id="grab" type="button" aria-label="Open or close the map info" aria-expanded="false">
+        <span></span>
+      </button>
+      <div class="sheet-top">
+        <button id="sheet-fold" type="button" aria-label="Hide the sheet">
+          <svg class="sheet-icon" viewBox="0 0 18 18" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"><rect x="2" y="3" width="14" height="12"/><path d="M11 3v12"/><path d="M5.5 6.5L8 9 5.5 11.5"/></svg>
+        </button>
+      </div>
+
+      <section>
+        <h2>Layers <small>click to show or hide</small></h2>
+        <div id="key">
+          <!-- In the order the map stacks them, top first: from the people down to the plate. -->
+          <button class="k" type="button" data-layer="people" aria-pressed="true">
+            <span class="sample s-people">
+              <span class="s-ramp"><i></i><i></i><i></i><i></i></span>
+            </span>
+            <span class="name">Population</span>
+            <span class="count" id="count-people"></span>
+          </button>
+          <!-- The Population ramp in four flat steps, words at the ends: the breaks are in About. -->
+          <div class="k-detail" id="people-detail">
+            <div id="people-ramp" class="ramp" aria-label="Colour ramp from fewer people to more people">
+              <span class="ramp-steps"><i></i><i></i><i></i><i></i></span>
+              <span class="ramp-ends"><span>fewer</span><span>more</span></span>
+            </div>
+          </div>
+          <button class="k" type="button" data-layer="nile" aria-pressed="true">
+            <span class="sample s-nile"></span>
+            <span class="name">Nile</span>
+            <span class="count" id="count-nile"></span>
+          </button>
+          <button class="k" type="button" data-layer="border" aria-pressed="true">
+            <span class="sample s-border"></span>
+            <span class="name">Egypt</span>
+            <span class="count" id="count-egypt"></span>
+          </button>
+        </div>
+
+        <div class="options">
+          <div class="option">
+            <p class="option-label" id="draw-as-label">
+              Draw as
+              <button id="info" class="info" type="button" aria-label="How 2D and 3D draw the people" aria-describedby="info-tip">
+                <svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true">
+                  <circle cx="7" cy="7" r="6" />
+                  <path d="M7 6.2v4M7 3.8v0.6" />
+                </svg>
+              </button>
+            </p>
+            <p id="info-tip" class="tip info-tip" role="tooltip" hidden>
+              2D shows where people live as a smoothed surface. 3D raises each 1&nbsp;km square by how many
+              people live there per km²; tilt the map to see the heights.
+            </p>
+            <div class="choices" role="group" aria-labelledby="draw-as-label">
+              <button type="button" data-draw="heatmap" aria-pressed="true">2D</button>
+              <button type="button" data-draw="columns" aria-pressed="false">3D</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- The filter: its own row under the options, not an entry. It thins the Population layer
+             down to the most crowded squares that hold the chosen share of people. -->
+        <div class="share-row">
+          <p class="option-label">
+            <label for="share">Show where this share of people lives</label>
+            <button id="share-info" class="info" type="button" aria-label="How the squares are chosen" aria-describedby="share-tip">
+              <svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true">
+                <circle cx="7" cy="7" r="6" />
+                <path d="M7 6.2v4M7 3.8v0.6" />
+              </svg>
+            </button>
+          </p>
+          <p id="share-tip" class="tip info-tip" role="tooltip" hidden>
+            Start with the most crowded square kilometre, add the next most crowded, and keep going
+            until the squares hold the share you picked. That is the smallest area those people fit
+            on.
+          </p>
+          <div class="slider">
+            <div class="track">
+              <input id="share" type="range" min="50" max="100" step="1" value="100" aria-describedby="readout" />
+            </div>
+            <span class="slider-value" id="share-value">100%</span>
+          </div>
+          <p id="readout" class="readout" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <section>
+        <h2>In numbers</h2>
+        <div id="numbers"></div>
+      </section>
+
+      <section>
+        <h2>Sources</h2>
+        <ol id="sources">
+          <li>
+            European Commission, Joint Research Centre: GHS-POP R2023A, population grid epoch 2025
+            (2023). Gives the Population layer (the 2D heatmap, the 1&nbsp;km squares and the 3D columns), the share
+            slider and the In numbers figures. CC BY 4.0.
+            <a href="https://doi.org/10.2905/2FF68A52-5B5B-4A22-8F40-C41DA8332CFE"
+              >https://doi.org/10.2905/2FF68A52-5B5B-4A22-8F40-C41DA8332CFE</a
+            >
+          </li>
+          <li>
+            Natural Earth: Admin 0 countries 1:10m, v5.1. Gives land, sea, the Egypt border and
+            Egypt's area. Public domain.
+            <a href="https://www.naturalearthdata.com/downloads/10m-cultural-vectors/"
+              >https://www.naturalearthdata.com/downloads/10m-cultural-vectors/</a
+            >
+          </li>
+          <li>
+            Natural Earth: Rivers and lake centerlines, and Lakes, 1:10m. Gives the Nile layer. Public domain.
+            <a href="https://www.naturalearthdata.com/downloads/10m-physical-vectors/"
+              >https://www.naturalearthdata.com/downloads/10m-physical-vectors/</a
+            >
+          </li>
+        </ol>
+        <p class="links">
+          <button id="about-open" class="text" type="button">About this map</button>
+          <button id="download-open" class="text" type="button">Download the data</button>
+        </p>
+      </section>
+    </aside>
+
+    <dialog id="about" aria-labelledby="about-title" tabindex="-1">
+      <form method="dialog" class="close">
+        <button type="submit" aria-label="Close">
+          <svg viewBox="0 0 20 20" width="16" height="16"><path d="M5 5l10 10M15 5L5 15" /></svg>
+        </button>
+      </form>
+      <p class="tip" aria-hidden="true" hidden></p>
+      <h2 id="about-title">About this map</h2>
+      <p>
+        The 2D map shows how many people live in each place in the GHS-POP 2025 estimate. It is
+        smoothed over about 8&nbsp;km, so the inhabited strip looks wider than it really is: set the
+        slider to 95% to see only the squares that hold 95% of people, and zoom in past level 9 to
+        see the real 1&nbsp;km squares. To find those squares, I start with the most crowded square
+        kilometre, add the next most crowded, and keep going until the squares hold 95% of Egypt's
+        people. That takes 22,090&nbsp;km² of Egypt's 1,005,130&nbsp;km², or 2.2%. Counted in smaller 100&nbsp;m
+        squares, the same people fit on 0.9% of the land, because the fields, roads and river
+        between homes no longer count. The colours of the squares and columns step at 1,000, 5,000
+        and 20,000&nbsp;people per km². In 3D each 1&nbsp;km square rises by its people per km² (1&nbsp;km of
+        height for every 4,000&nbsp;people per km²); squares under 100&nbsp;people per km² stay flat. Rivers
+        and lakes outside Egypt are drawn lighter. The Nile's 1,230&nbsp;km is its main stem inside
+        Egypt, without the delta branches. The border is Natural Earth's, which includes the Halaib
+        triangle.
+      </p>
+      <h3>Licences</h3>
+      <p>
+        GHS-POP R2023A is licensed under CC BY 4.0; I cut it to Egypt, summed it to 1&nbsp;km squares and
+        placed the dots at random inside its 100&nbsp;m squares. Natural Earth's countries, rivers and
+        lakes are in the public domain.
+      </p>
+      <h3>GHS-POP</h3>
+      <p>
+        Contains modified GHS-POP R2023A data, © European Union, 1995-2026, licensed under
+        <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.
+      </p>
+      <!-- Filled from layers/meta.json, which prepare.py writes from data/raw/sources.json. -->
+      <p id="fetched" class="fetched"></p>
+    </dialog>
+
+    <dialog id="download" aria-labelledby="download-title" tabindex="-1">
+      <form method="dialog" class="close">
+        <button type="submit" aria-label="Close">
+          <svg viewBox="0 0 20 20" width="16" height="16"><path d="M5 5l10 10M15 5L5 15" /></svg>
+        </button>
+      </form>
+      <p class="tip" aria-hidden="true" hidden></p>
+      <h2 id="download-title">Download the data</h2>
+      <h3>The layers this map draws</h3>
+      <ul>
+        <li>
+          <a href="layers/download/egypt_population_1km.csv" download>egypt_population_1km.csv</a>:
+          every 1&nbsp;km square with people (lon, lat, people, per_km2, cum_share, in_95). GHS-POP,
+          CC BY 4.0. Contains modified GHS-POP R2023A data, © European Union, 1995-2026, licensed
+          under CC BY 4.0.
+        </li>
+        <li>
+          <a href="layers/download/land.geojson" download>land.geojson</a>: land and sea. Natural
+          Earth, public domain.
+        </li>
+        <li>
+          <a href="layers/download/egypt_border.geojson" download>egypt_border.geojson</a>: the
+          Egypt border. Natural Earth, public domain.
+        </li>
+        <li>
+          <a href="layers/download/nile_lakes.geojson" download>nile_lakes.geojson</a>: the Nile,
+          rivers and lakes. Natural Earth, public domain.
+        </li>
+      </ul>
+      <p>
+        The other layers (the 1&nbsp;km squares as binary arrays, the share curve behind the slider and
+        the dots, which are a random drawing, not data) are built from
+        <a href="https://human-settlement.emergency.copernicus.eu/download.php">GHS-POP R2023A</a>
+        with <code>uv run maps/prepare.py</code>.
+      </p>
+    </dialog>
+
+    <script type="module" src="./ui.js"></script>
+  </body>
+</html>
