@@ -1,0 +1,1027 @@
+{
+ "fps": 30,
+ "frames": 435,
+ "length_s": 14.5,
+ "hero_frame": 30,
+ "frame_px": [
+  1080,
+  1920
+ ],
+ "crs": "EPSG:2056",
+ "origin_m": [
+  2622203.2,
+  1177424.6
+ ],
+ "place": {
+  "name": "Switzerland, Basel to the Italian border at Monte Rosa",
+  "line": {
+   "anchors": [
+    {
+     "name": "Basel",
+     "swissnames_kind": "Ort"
+    },
+    {
+     "name": "Dufourspitze",
+     "swissnames_kind": "Alpiner Gipfel"
+    }
+   ],
+   "country_icc": "CH",
+   "crs": "EPSG:2056",
+   "start": [
+    7.58433,
+    47.57559
+   ],
+   "end": [
+    7.86968,
+    45.91944
+   ],
+   "start_m": [
+    2610963.1,
+    1269441.8
+   ],
+   "end_m": [
+    2633443.3,
+    1085407.4
+   ],
+   "start_xz": [
+    -11.2401,
+    -92.0172
+   ],
+   "end_xz": [
+    11.2401,
+    92.0172
+   ],
+   "length_km": 185.4023,
+   "along_xz": [
+    0.121251,
+    0.992622
+   ],
+   "corridor_normal_xz": [
+    0.992622,
+    -0.121251
+   ],
+   "bearing_deg": 173.1,
+   "grid_bearing_deg": 173.04,
+   "profile_step_m": 30.0,
+   "samples": 6181
+  },
+  "corridor_km": 15.0,
+  "corridor_side": "east of the line kept, west side cut away so the cut face looks west",
+  "points_km": {
+   "basel": 0.0,
+   "jura": 32.88,
+   "lake_thun": 98.61,
+   "bernese_alps": 121.62,
+   "rhone_valley": 142.02,
+   "dufourspitze": 183.36,
+   "monte_rosa": 185.4
+  }
+ },
+ "corridor": {
+  "along_km": 185.4023,
+  "across_km": 15.0,
+  "width_px": 3091,
+  "height_px": 251,
+  "cell_m": 60.0
+ },
+ "base": {
+  "west_m": 2425410.215,
+  "south_m": 1015268.1359999999,
+  "east_m": 2893857.724,
+  "north_m": 1355933.698,
+  "width_px": 2048,
+  "height_px": 1489
+ },
+ "look": {
+  "background": "#0F141A",
+  "height_ramp": [
+   "#141c26",
+   "#22324a",
+   "#3a5677",
+   "#6f8fb3",
+   "#c9d6e6"
+  ],
+  "height_ramp_domain_m": [
+   200,
+   4600
+  ],
+  "height_ramp_scale": "sqrt",
+  "cut_face": "#22344b",
+  "wall_edge": "#4a6789",
+  "profile_fill": "#2c4361",
+  "profile_ahead": "#1b2633",
+  "line": "#FFB000",
+  "cursor": "#FFB000",
+  "cursor_rim": "#0F141A",
+  "slate": "#8A94A3",
+  "paper": "#F4F1EA",
+  "border": "#F4F1EA",
+  "border_opacity": 0.35,
+  "ticks_m": [
+   1000,
+   2000,
+   3000,
+   4000
+  ],
+  "tick_opacity": 0.4,
+  "exaggeration": {
+   "slice_3d": 9,
+   "profile_2d": 17
+  },
+  "light": {
+   "azimuth_deg": 315,
+   "altitude_deg": 40
+  }
+ },
+ "geo": {
+  "powers": [
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    1
+   ],
+   [
+    0,
+    2
+   ],
+   [
+    0,
+    3
+   ],
+   [
+    1,
+    0
+   ],
+   [
+    1,
+    1
+   ],
+   [
+    1,
+    2
+   ],
+   [
+    2,
+    0
+   ],
+   [
+    2,
+    1
+   ],
+   [
+    3,
+    0
+   ]
+  ],
+  "lon": [
+   7.729199389135298,
+   -4.838212852608365e-05,
+   7.935904035023525e-09,
+   -4.1439909454435125e-12,
+   0.01308645680159683,
+   -2.183420247442305e-06,
+   3.648412875208067e-10,
+   -7.982145701099252e-09,
+   1.2492101544868823e-11,
+   -1.2190210541266754e-10
+  ],
+  "lat": [
+   46.74764482653572,
+   -0.00899538039690494,
+   -4.966259838274588e-09,
+   3.687578359757883e-11,
+   -3.323699456462167e-05,
+   5.441582266735941e-09,
+   -2.4659799107359003e-12,
+   -7.506583965262849e-07,
+   1.2426788651248154e-10,
+   1.6016070827748572e-12
+  ]
+ },
+ "beats": [
+  {
+   "id": "hook",
+   "start_s": 0.0,
+   "end_s": 2.0,
+   "layers": [
+    "relief_90m",
+    "country_mask",
+    "border",
+    "line",
+    "line_ends"
+   ],
+   "camera": {
+    "from": {
+     "centre": [
+      7.7292,
+      46.74765
+     ],
+     "pitch": 0,
+     "bearing": 0,
+     "projection": "perspective",
+     "anchor_px": [
+      540,
+      1040
+     ],
+     "subject_px": [
+      0,
+      470,
+      1080,
+      1560
+     ],
+     "zoom": 7.7555,
+     "xz": [
+      0.0,
+      -0.0008
+     ],
+     "view_width_km": 268.0494,
+     "target_m": 0
+    },
+    "to": {
+     "centre": [
+      7.7292,
+      46.74765
+     ],
+     "pitch": 0,
+     "bearing": 0,
+     "projection": "perspective",
+     "anchor_px": [
+      540,
+      1040
+     ],
+     "subject_px": [
+      0,
+      470,
+      1080,
+      1560
+     ],
+     "zoom": 7.8255,
+     "xz": [
+      0.0,
+      -0.0008
+     ],
+     "view_width_km": 255.3541,
+     "target_m": 0
+    }
+   },
+   "ease": "none"
+  },
+  {
+   "id": "slice",
+   "start_s": 2.0,
+   "end_s": 6.5,
+   "layers": [
+    "relief_30m_corridor",
+    "cut_face",
+    "line_profile",
+    "cursor"
+   ],
+   "camera": {
+    "from": {
+     "centre": [
+      7.7292,
+      46.74765
+     ],
+     "pitch": 0,
+     "bearing": 0,
+     "projection": "perspective",
+     "anchor_px": [
+      540,
+      1040
+     ],
+     "subject_px": [
+      0,
+      470,
+      1080,
+      1560
+     ],
+     "zoom": 7.8255,
+     "xz": [
+      0.0,
+      -0.0008
+     ],
+     "view_width_km": 255.3541,
+     "target_m": 0
+    },
+    "via": [
+     {
+      "along_km": 18.0,
+      "view_width_km": 150.0,
+      "pitch": 50,
+      "bearing": 65,
+      "projection": "perspective",
+      "anchor_px": [
+       470,
+       820
+      ],
+      "subject_px": [
+       0,
+       500,
+       1080,
+       1060
+      ],
+      "at_s": 2.7,
+      "centre": [
+       7.61281,
+       47.41485
+      ],
+      "xz": [
+       -9.0577,
+       -74.1498
+      ],
+      "target_m": 0
+     },
+     {
+      "along_km": 34.0,
+      "view_width_km": 85.0,
+      "pitch": 72,
+      "bearing": 105,
+      "projection": "perspective",
+      "anchor_px": [
+       500,
+       1010
+      ],
+      "subject_px": [
+       0,
+       500,
+       1080,
+       1060
+      ],
+      "at_s": 3.5,
+      "centre": [
+       7.63798,
+       47.27196
+      ],
+      "xz": [
+       -7.1179,
+       -58.2677
+      ],
+      "target_m": 0
+     },
+     {
+      "along_km": 68.0,
+      "view_width_km": 120.0,
+      "pitch": 69,
+      "bearing": 97,
+      "projection": "perspective",
+      "anchor_px": [
+       580,
+       980
+      ],
+      "subject_px": [
+       0,
+       500,
+       1080,
+       1060
+      ],
+      "at_s": 4.7,
+      "centre": [
+       7.69103,
+       46.96829
+      ],
+      "xz": [
+       -2.9953,
+       -24.519
+      ],
+      "target_m": 0
+     }
+    ],
+    "to": {
+     "centre": [
+      7.76326,
+      46.5492
+     ],
+     "zoom": 8.6587,
+     "pitch": 63.8,
+     "bearing": 83.1,
+     "projection": "perspective",
+     "anchor_px": [
+      780,
+      912
+     ],
+     "subject_px": [
+      0,
+      500,
+      1080,
+      1060
+     ],
+     "at_s": 6.0,
+     "xz": [
+      2.6938,
+      22.0498
+     ],
+     "view_width_km": 143.8527,
+     "target_m": 0
+    }
+   },
+   "ease": "cubic"
+  },
+  {
+   "id": "profile",
+   "start_s": 6.5,
+   "end_s": 9.5,
+   "layers": [
+    "profile_fill",
+    "line_profile",
+    "cursor"
+   ],
+   "camera": {
+    "from": {
+     "centre": [
+      7.76326,
+      46.5492
+     ],
+     "zoom": 8.6587,
+     "pitch": 63.8,
+     "bearing": 83.1,
+     "projection": "perspective",
+     "anchor_px": [
+      780,
+      912
+     ],
+     "subject_px": [
+      0,
+      500,
+      1080,
+      1060
+     ],
+     "at_s": 6.5,
+     "xz": [
+      2.6938,
+      22.0498
+     ],
+     "view_width_km": 143.8527,
+     "target_m": 0
+    },
+    "to": {
+     "centre": [
+      7.7292,
+      46.74765
+     ],
+     "pitch": 90,
+     "bearing": 83.1,
+     "projection": "orthographic",
+     "anchor_px": [
+      540,
+      940
+     ],
+     "subject_px": [
+      0,
+      420,
+      1080,
+      960
+     ],
+     "zoom": 7.6,
+     "at_s": 7.2,
+     "xz": [
+      0.0,
+      -0.0008
+     ],
+     "view_width_km": 185.4023,
+     "target_m": 0
+    }
+   },
+   "ease": "power2.inOut"
+  },
+  {
+   "id": "summit",
+   "start_s": 9.5,
+   "end_s": 13.0,
+   "layers": [
+    "profile_fill",
+    "line_profile",
+    "cursor",
+    "summit_dot"
+   ],
+   "camera": {
+    "from": {
+     "centre": [
+      7.7292,
+      46.74765
+     ],
+     "pitch": 90,
+     "bearing": 83.1,
+     "projection": "orthographic",
+     "anchor_px": [
+      540,
+      940
+     ],
+     "subject_px": [
+      0,
+      420,
+      1080,
+      960
+     ],
+     "zoom": 7.6,
+     "at_s": 9.5,
+     "xz": [
+      0.0,
+      -0.0008
+     ],
+     "view_width_km": 185.4023,
+     "target_m": 0
+    },
+    "to": {
+     "centre": [
+      7.7292,
+      46.74765
+     ],
+     "pitch": 90,
+     "bearing": 83.1,
+     "projection": "orthographic",
+     "anchor_px": [
+      540,
+      940
+     ],
+     "subject_px": [
+      0,
+      420,
+      1080,
+      960
+     ],
+     "zoom": 7.6,
+     "at_s": 13.0,
+     "xz": [
+      0.0,
+      -0.0008
+     ],
+     "view_width_km": 185.4023,
+     "target_m": 0
+    }
+   },
+   "ease": "none"
+  },
+  {
+   "id": "end",
+   "start_s": 13.0,
+   "end_s": 14.5,
+   "layers": [
+    "relief_90m",
+    "country_mask",
+    "border",
+    "line",
+    "wash"
+   ],
+   "camera": {
+    "from": {
+     "centre": [
+      7.7292,
+      46.74765
+     ],
+     "pitch": 90,
+     "bearing": 83.1,
+     "projection": "orthographic",
+     "anchor_px": [
+      540,
+      940
+     ],
+     "subject_px": [
+      0,
+      420,
+      1080,
+      960
+     ],
+     "zoom": 7.6,
+     "at_s": 13.0,
+     "xz": [
+      0.0,
+      -0.0008
+     ],
+     "view_width_km": 185.4023,
+     "target_m": 0
+    },
+    "to": {
+     "centre": [
+      7.7292,
+      46.74765
+     ],
+     "pitch": 0,
+     "bearing": 0,
+     "projection": "perspective",
+     "anchor_px": [
+      540,
+      1040
+     ],
+     "subject_px": [
+      0,
+      470,
+      1080,
+      1560
+     ],
+     "zoom": 7.7555,
+     "at_s": 14.5,
+     "xz": [
+      0.0,
+      -0.0008
+     ],
+     "view_width_km": 268.0494,
+     "target_m": 0
+    }
+   },
+   "ease": "power2.inOut"
+  }
+ ],
+ "cursor_keys": [
+  [
+   2.4,
+   0.0
+  ],
+  [
+   6.0,
+   98.61
+  ],
+  [
+   6.5,
+   98.61
+  ],
+  [
+   9.0,
+   121.62
+  ],
+  [
+   9.5,
+   121.62
+  ],
+  [
+   10.4,
+   142.02
+  ],
+  [
+   11.8,
+   183.36
+  ]
+ ],
+ "page_type": "explainer",
+ "indicators": {
+  "places": [
+   {
+    "id": "jura",
+    "name": "Jura",
+    "value_m": 1189,
+    "km": 32.88,
+    "dem_m": 1189,
+    "view": "slice",
+    "dx": 40,
+    "dy": -50,
+    "align": "start",
+    "target": "ind_jura"
+   },
+   {
+    "id": "lake_thun",
+    "name": "Lake Thun",
+    "value_m": 558,
+    "km": 98.61,
+    "dem_m": 558,
+    "view": "slice",
+    "dx": -30,
+    "dy": -60,
+    "align": "end",
+    "target": "ind_lake_thun"
+   },
+   {
+    "id": "bernese_alps",
+    "name": "Blüemlisalp",
+    "value_m": 3633,
+    "km": 121.62,
+    "dem_m": 3633,
+    "view": "side",
+    "dx": 16,
+    "dy": 22,
+    "align": "start",
+    "target": "ind_bernese_alps"
+   },
+   {
+    "id": "rhone_valley",
+    "name": "Rhône valley",
+    "value_m": 634,
+    "km": 142.02,
+    "dem_m": 634,
+    "view": "side",
+    "dx": -16,
+    "dy": 16,
+    "align": "end",
+    "target": "ind_rhone_valley"
+   },
+   {
+    "id": "dufourspitze",
+    "name": "Dufourspitze",
+    "value_m": 4634,
+    "km": 183.36,
+    "dem_m": 4535,
+    "view": "side",
+    "dx": -118,
+    "dy": 78,
+    "align": "end",
+    "target": "ind_dufourspitze"
+   }
+  ],
+  "axes": {
+   "heights_m": [
+    1000,
+    2000,
+    3000,
+    4000
+   ],
+   "km_step": 25
+  },
+  "safe_box_px": [
+   120,
+   290,
+   960,
+   1440
+  ]
+ },
+ "tweens": [
+  {
+   "target": "pulse_km",
+   "from": 0.0,
+   "to": 1.0,
+   "start_s": 0.1,
+   "end_s": 1.9,
+   "ease": "power1.inOut"
+  },
+  {
+   "target": "pulse",
+   "from": 0.0,
+   "to": 1.0,
+   "start_s": 0.1,
+   "end_s": 0.4,
+   "ease": "power1.out"
+  },
+  {
+   "target": "pulse",
+   "from": 1.0,
+   "to": 0.0,
+   "start_s": 1.6,
+   "end_s": 1.95,
+   "ease": "power1.in"
+  },
+  {
+   "target": "ex",
+   "from": 0.0,
+   "to": 9.0,
+   "start_s": 2.0,
+   "end_s": 3.0,
+   "ease": "power2.inOut"
+  },
+  {
+   "target": "corridor",
+   "from": 0.0,
+   "to": 1.0,
+   "start_s": 2.0,
+   "end_s": 2.3,
+   "ease": "power1.out"
+  },
+  {
+   "target": "map_line",
+   "from": 1.0,
+   "to": 0.0,
+   "start_s": 2.0,
+   "end_s": 2.5,
+   "ease": "power1.inOut"
+  },
+  {
+   "target": "base_west",
+   "from": 1.0,
+   "to": 0.0,
+   "start_s": 2.0,
+   "end_s": 3.0,
+   "ease": "power1.inOut"
+  },
+  {
+   "target": "base",
+   "from": 1.0,
+   "to": 0.0,
+   "start_s": 3.0,
+   "end_s": 4.2,
+   "ease": "power1.inOut"
+  },
+  {
+   "target": "cursor",
+   "from": 0.0,
+   "to": 1.0,
+   "start_s": 2.4,
+   "end_s": 2.6,
+   "ease": "power1.out"
+  },
+  {
+   "target": "ex",
+   "from": 9.0,
+   "to": 17.0,
+   "start_s": 6.5,
+   "end_s": 7.2,
+   "ease": "power2.inOut"
+  },
+  {
+   "target": "flatten",
+   "from": 0.0,
+   "to": 1.0,
+   "start_s": 6.5,
+   "end_s": 7.2,
+   "ease": "power2.inOut"
+  },
+  {
+   "target": "profile_mix",
+   "from": 0.0,
+   "to": 1.0,
+   "start_s": 6.5,
+   "end_s": 6.8,
+   "ease": "power1.inOut"
+  },
+  {
+   "target": "summit",
+   "from": 0.0,
+   "to": 1.0,
+   "start_s": 11.8,
+   "end_s": 11.85,
+   "ease": "none"
+  },
+  {
+   "target": "summit_pulse",
+   "from": 0.0,
+   "to": 1.0,
+   "start_s": 11.8,
+   "end_s": 12.6,
+   "ease": "power1.out"
+  },
+  {
+   "target": "cursor",
+   "from": 1.0,
+   "to": 0.0,
+   "start_s": 13.0,
+   "end_s": 13.3,
+   "ease": "power1.in"
+  },
+  {
+   "target": "summit",
+   "from": 1.0,
+   "to": 0.0,
+   "start_s": 13.0,
+   "end_s": 13.3,
+   "ease": "power1.in"
+  },
+  {
+   "target": "profile_mix",
+   "from": 1.0,
+   "to": 0.0,
+   "start_s": 13.0,
+   "end_s": 13.3,
+   "ease": "power1.inOut"
+  },
+  {
+   "target": "ex",
+   "from": 17.0,
+   "to": 0.0,
+   "start_s": 13.0,
+   "end_s": 13.9,
+   "ease": "power2.inOut"
+  },
+  {
+   "target": "flatten",
+   "from": 1.0,
+   "to": 0.0,
+   "start_s": 13.0,
+   "end_s": 13.9,
+   "ease": "power2.inOut"
+  },
+  {
+   "target": "base",
+   "from": 0.0,
+   "to": 1.0,
+   "start_s": 13.3,
+   "end_s": 14.2,
+   "ease": "power1.inOut"
+  },
+  {
+   "target": "base_west",
+   "from": 0.0,
+   "to": 1.0,
+   "start_s": 13.3,
+   "end_s": 14.2,
+   "ease": "power1.inOut"
+  },
+  {
+   "target": "corridor",
+   "from": 1.0,
+   "to": 0.0,
+   "start_s": 13.2,
+   "end_s": 13.65,
+   "ease": "power1.inOut"
+  },
+  {
+   "target": "map_line",
+   "from": 0.0,
+   "to": 1.0,
+   "start_s": 13.8,
+   "end_s": 14.4,
+   "ease": "power1.inOut"
+  },
+  {
+   "target": "ind_jura",
+   "from": 0.0,
+   "to": 1.0,
+   "start_s": 3.6,
+   "end_s": 3.8000000000000003,
+   "ease": "power1.out"
+  },
+  {
+   "target": "ind_jura",
+   "from": 1.0,
+   "to": 0.0,
+   "start_s": 4.8,
+   "end_s": 5.0,
+   "ease": "power1.in"
+  },
+  {
+   "target": "ind_lake_thun",
+   "from": 0.0,
+   "to": 1.0,
+   "start_s": 6.0,
+   "end_s": 6.2,
+   "ease": "power1.out"
+  },
+  {
+   "target": "ind_lake_thun",
+   "from": 1.0,
+   "to": 0.0,
+   "start_s": 7.2,
+   "end_s": 7.4,
+   "ease": "power1.in"
+  },
+  {
+   "target": "ind_bernese_alps",
+   "from": 0.0,
+   "to": 1.0,
+   "start_s": 9.0,
+   "end_s": 9.2,
+   "ease": "power1.out"
+  },
+  {
+   "target": "ind_bernese_alps",
+   "from": 1.0,
+   "to": 0.0,
+   "start_s": 10.2,
+   "end_s": 10.399999999999999,
+   "ease": "power1.in"
+  },
+  {
+   "target": "ind_rhone_valley",
+   "from": 0.0,
+   "to": 1.0,
+   "start_s": 10.4,
+   "end_s": 10.6,
+   "ease": "power1.out"
+  },
+  {
+   "target": "ind_rhone_valley",
+   "from": 1.0,
+   "to": 0.0,
+   "start_s": 11.6,
+   "end_s": 11.799999999999999,
+   "ease": "power1.in"
+  },
+  {
+   "target": "ind_dufourspitze",
+   "from": 0.0,
+   "to": 1.0,
+   "start_s": 11.8,
+   "end_s": 12.0,
+   "ease": "power1.out"
+  },
+  {
+   "target": "ind_dufourspitze",
+   "from": 1.0,
+   "to": 0.0,
+   "start_s": 13.0,
+   "end_s": 13.2,
+   "ease": "power1.in"
+  },
+  {
+   "target": "axes",
+   "from": 0.0,
+   "to": 1.0,
+   "start_s": 6.5,
+   "end_s": 7.2,
+   "ease": "power2.inOut"
+  },
+  {
+   "target": "axes",
+   "from": 1.0,
+   "to": 0.0,
+   "start_s": 13.0,
+   "end_s": 13.3,
+   "ease": "power1.in"
+  }
+ ],
+ "start_view": {
+  "along_km": 92.7,
+  "pitch": 55,
+  "bearing": 83.1,
+  "ex": 9,
+  "base": 0.55
+ },
+ "model_top_m": 4634
+}

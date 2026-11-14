@@ -1,0 +1,72 @@
+[
+ {
+  "id": "basel",
+  "figure": "start_height",
+  "km": 0.0,
+  "lon": 7.58433,
+  "lat": 47.57559,
+  "e": 2610963,
+  "n": 1269442,
+  "dem_m": 246
+ },
+ {
+  "id": "jura",
+  "figure": "jura",
+  "km": 32.88,
+  "lon": 7.63623,
+  "lat": 47.28197,
+  "e": 2614950,
+  "n": 1236804,
+  "dem_m": 1189
+ },
+ {
+  "id": "lake_thun",
+  "figure": "lake_thun",
+  "km": 98.61,
+  "lon": 7.73828,
+  "lat": 46.69486,
+  "e": 2622920,
+  "n": 1171559,
+  "dem_m": 558
+ },
+ {
+  "id": "bernese_alps",
+  "figure": "bernese_alps",
+  "km": 121.62,
+  "lon": 7.77349,
+  "lat": 46.4893,
+  "e": 2625710,
+  "n": 1148719,
+  "dem_m": 3633
+ },
+ {
+  "id": "rhone_valley",
+  "figure": "rhone_valley",
+  "km": 142.02,
+  "lon": 7.80447,
+  "lat": 46.30704,
+  "e": 2628183,
+  "n": 1128470,
+  "dem_m": 634
+ },
+ {
+  "id": "dufourspitze",
+  "figure": "high_point",
+  "km": 183.36,
+  "lon": 7.86664,
+  "lat": 45.93769,
+  "e": 2633196,
+  "n": 1087435,
+  "dem_m": 4535
+ },
+ {
+  "id": "monte_rosa",
+  "figure": "end_height",
+  "km": 185.4,
+  "lon": 7.86968,
+  "lat": 45.91946,
+  "e": 2633443,
+  "n": 1085410,
+  "dem_m": 4399
+ }
+]

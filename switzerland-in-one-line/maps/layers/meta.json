@@ -1,0 +1,20 @@
+{
+ "sources": [
+  {
+   "name": "Copernicus DEM GLO-30",
+   "downloaded": "2026-11-12"
+  },
+  {
+   "name": "Copernicus DEM GLO-90",
+   "downloaded": "2026-11-12"
+  },
+  {
+   "name": "swissBOUNDARIES3D, release 2026-01 (national, cantonal and municipal borders)",
+   "downloaded": "2026-11-12"
+  },
+  {
+   "name": "swissNAMES3D, release 2026 (place and terrain names, points)",
+   "downloaded": "2026-11-12"
+  }
+ ]
+}

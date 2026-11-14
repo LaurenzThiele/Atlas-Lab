@@ -1,0 +1,101 @@
+[
+  {
+    "id": "line_length",
+    "value": 185.4,
+    "unit": "km",
+    "display": "185 km",
+    "source": "swissBOUNDARIES3D 2026-01 (Federal Office of Topography swisstopo)",
+    "method": "Straight line through Basel and the Dufourspitze, cut to the Swiss border, measured in LV95 (EPSG:2056).",
+    "check": "WGS84 geodesic length 185.4 km, +0.01%."
+  },
+  {
+    "id": "start_height",
+    "value": 246,
+    "unit": "m above sea level",
+    "display": "246 m",
+    "source": "Copernicus DEM GLO-30 (ESA / Copernicus)",
+    "method": "DEM height of the first profile cell, where the line enters Switzerland on the Rhine.",
+    "check": "swisstopo height service (swissALTI3D), https://api3.geo.admin.ch/rest/services/height: 244.8 m, difference +0.3%, inside the 5% rule"
+  },
+  {
+    "id": "jura",
+    "value": 1189,
+    "unit": "m above sea level",
+    "display": "JURA 1,189 m",
+    "source": "Copernicus DEM GLO-30 (ESA / Copernicus)",
+    "method": "Highest DEM cell on the line within 3.0 km of the swisstopo name point Hällchöpfli (947 m off the line), at km 32.9, 47.28197 N 7.63623 E (LV95 2614950 1236804).",
+    "check": "swisstopo height service (swissALTI3D), https://api3.geo.admin.ch/rest/services/height: 1,177.9 m, difference +0.9%, inside the 5% rule"
+  },
+  {
+    "id": "lake_thun",
+    "value": 558,
+    "unit": "m above sea level",
+    "display": "LAKE THUN 558 m",
+    "source": "Copernicus DEM GLO-30 (ESA / Copernicus)",
+    "method": "Lowest DEM cell on the line within 1.5 km of the swisstopo name point Merligen (4 m off the line), at km 98.6, 46.69486 N 7.73828 E (LV95 2622920 1171559).",
+    "check": "swissNAMES3D lake level of the Thunersee; https://en.wikipedia.org/wiki/Lake_Thun: 558.0 m, difference -0.1%, inside the 5% rule"
+  },
+  {
+    "id": "bernese_alps",
+    "value": 3633,
+    "unit": "m above sea level",
+    "display": "BLÜEMLISALP 3,633 m",
+    "source": "Copernicus DEM GLO-30 (ESA / Copernicus)",
+    "method": "Highest DEM cell on the line within 1.5 km of the swisstopo name point Blüemlisalphorn (137 m off the line), at km 121.6, 46.48930 N 7.77349 E (LV95 2625710 1148719).",
+    "check": "swisstopo height service (swissALTI3D), https://api3.geo.admin.ch/rest/services/height: 3,633.2 m, difference -0.0%, inside the 5% rule"
+  },
+  {
+    "id": "rhone_valley",
+    "value": 634,
+    "unit": "m above sea level",
+    "display": "RHÔNE VALLEY 634 m",
+    "source": "Copernicus DEM GLO-30 (ESA / Copernicus)",
+    "method": "Lowest DEM cell on the line within 2.0 km of the swisstopo name point Raron (300 m off the line), at km 142.0, 46.30704 N 7.80447 E (LV95 2628183 1128470).",
+    "check": "swisstopo height service (swissALTI3D), https://api3.geo.admin.ch/rest/services/height: 633.8 m, difference -0.0%, inside the 5% rule"
+  },
+  {
+    "id": "high_point",
+    "value": 4634,
+    "unit": "m above sea level",
+    "display": "4,634 m",
+    "source": "swisstopo national map, as quoted in https://en.wikipedia.org/wiki/Dufourspitze",
+    "method": "Official height of the Dufourspitze, the highest point of Switzerland, which the line passes through at km 183.4. The big number.",
+    "check": "swissNAMES3D 2026 name point in the data: 4,633 m, -1 m (-0.02%), inside the 5% rule; the data stores whole metres."
+  },
+  {
+    "id": "dem_peak",
+    "value": 4535,
+    "unit": "m above sea level",
+    "display": "4,535 m",
+    "source": "Copernicus DEM GLO-30 (ESA / Copernicus)",
+    "method": "Highest DEM cell on the whole profile, at km 183.4. Not for the screen: it shows how far the 30 m radar DEM sits below a sharp summit.",
+    "check": "swisstopo national map, as quoted in https://en.wikipedia.org/wiki/Dufourspitze: 4,634.0 m, difference -2.1%, inside the 5% rule"
+  },
+  {
+    "id": "climb",
+    "value": 4388,
+    "unit": "m",
+    "display": "4,388 m",
+    "source": "swisstopo national map; Copernicus DEM GLO-30 (ESA / Copernicus)",
+    "method": "Summit height minus the start height, so the screen adds up.",
+    "check": "4,634 minus 246."
+  },
+  {
+    "id": "end_height",
+    "value": 4399,
+    "unit": "m above sea level",
+    "display": "4,399 m",
+    "source": "Copernicus DEM GLO-30 (ESA / Copernicus)",
+    "method": "DEM height of the last profile cell, where the line meets the Italian border.",
+    "check": "Below the summit, as it should be: the line follows the border ridge for 2.0 km past the Dufourspitze and leaves Switzerland next to the Parrotspitze (4,431 m, 101 m away)."
+  },
+  {
+    "id": "profile_step",
+    "value": 30.0,
+    "unit": "m",
+    "display": "one height every 30 m",
+    "source": "Copernicus DEM GLO-30 (ESA / Copernicus)",
+    "method": "Profile sample spacing; 6,181 samples along the line.",
+    "check": "Matches the GLO-30 cell (1 arc second, about 31 m north-south here)."
+  }
+]
