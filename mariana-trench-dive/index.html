@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Inside the Mariana Trench | Atlas Lab</title>
+    <meta
+      name="description"
+      content="A 3D model of the southern Mariana Trench. Its deepest point, Challenger Deep, lies 10,932 m below the sea."
+    />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="favicon-32.png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <script type="module" crossorigin src="./assets/index-Djr9_764.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-TUljOsk9.css">
+  </head>
+  <body>
+    <main id="scene" aria-label="3D model of the southern Mariana Trench"></main>
+
+    <!-- Labels on the model: placed by ui.js on every frame, hidden where they would collide. -->
+    <svg id="leaders" class="furniture" aria-hidden="true"></svg>
+    <div id="labels" class="furniture"></div>
+
+    <header id="title-block" class="furniture">
+      <h1>Inside the Mariana Trench</h1>
+      <p class="lede">Its deepest point, Challenger Deep, lies <strong>10,932&nbsp;m</strong> below the sea.</p>
+    </header>
+
+    <section id="legend" class="furniture" aria-label="Key">
+      <!-- The map controls line: always on screen while the model is interactive. -->
+      <p id="hint" class="gone"><span class="verb">Click</span> the model to read the depth. <span class="verb">Drag</span> to tilt and turn, <span class="verb">Ctrl + drag</span> or <span class="verb">right-drag</span> to move, <span class="verb">scroll</span> to zoom.</p>
+      <ul class="key">
+        <li>
+          <svg class="sample" viewBox="0 0 18 18" width="18" height="18" aria-hidden="true">
+            <circle cx="9" cy="9" r="6" fill="#FFB000" stroke="#0F141A" stroke-width="3" />
+          </svg>
+          Challenger Deep
+        </li>
+      </ul>
+      <p class="legend-title">Depth below sea level</p>
+      <div class="ramp-wrap">
+        <div class="ramp"></div>
+        <svg class="ramp-ticks" aria-hidden="true"></svg>
+        <div class="ramp-labels"></div>
+      </div>
+      <div class="scale-row">
+        <div id="km-scale">
+          <svg aria-hidden="true"><path /></svg>
+          <span class="km-label"></span>
+        </div>
+        <div id="north" role="img" aria-label="North arrow">
+          <svg viewBox="0 0 28 28" width="28" height="28" aria-hidden="true">
+            <circle cx="14" cy="14" r="12.5" fill="none" stroke="#F4F1EA" stroke-opacity="0.6" stroke-width="1" />
+            <path class="head" d="M14 4.5l3.2 9.5H10.8z" />
+            <path d="M14 14v9.5" />
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <nav id="buttons" class="furniture" aria-label="Model controls">
+      <button id="play" type="button" aria-label="Play the animation">
+        <svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path d="M5.5 3.5v11l9-5.5z" /></svg>
+      </button>
+      <button id="home" type="button" aria-label="Back to the default view">
+        <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M5 8V5h3M15 8V5h-3M5 12v3h3M15 12v3h-3" /></svg>
+      </button>
+      <button id="info" class="group-start" type="button" aria-label="About this scene" aria-haspopup="dialog">
+        <svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><circle cx="9" cy="9" r="7" /><path d="M9 8v5" /><path d="M9 5.2v1.3" /></svg>
+      </button>
+    </nav>
+
+    <!-- While the animation runs, only this shows: it closes the animation (Escape does too). -->
+    <button id="close" type="button" aria-label="Close the animation" hidden>
+      <svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path d="M4 4l10 10M14 4L4 14" /></svg>
+    </button>
+
+    <div id="tooltip" role="tooltip" hidden></div>
+
+    <!-- The reading: a note floating beside the ping the model draws at the clicked point. -->
+    <div id="note" hidden></div>
+    <div id="note-live" class="visually-hidden" aria-live="polite"></div>
+
+    <dialog id="about" class="notes" aria-labelledby="about-title" tabindex="-1">
+      <button id="about-close" class="close" type="button" aria-label="Close">
+        <svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path d="M4 4l10 10M14 4L4 14" /></svg>
+      </button>
+      <h2 id="about-title">About this scene</h2>
+      <p>
+        A model of the southern Mariana Trench, down to the deepest point in the GMRT seafloor
+        grid, 10,932&nbsp;m below sea level. Heights are drawn 6 times taller than they are, so the
+        trench reads in 3D. Play runs a dive to the deepest point, cuts a slice through it and
+        sets Everest into the slice at the same scale: its peak stays 2,083&nbsp;m under the surface.
+        A click on the model reads the depth from the same grid, averaged to cells of about
+        480&nbsp;m so the browser can load it.
+      </p>
+
+      <h3>Sources</h3>
+      <ol class="sources">
+        <li>
+          Lamont-Doherty Earth Observatory, Columbia University: GMRT Global Multi-Resolution
+          Topography synthesis (Ryan et al. 2009,
+          <a href="https://doi.org/10.1029/2008GC002332">doi:10.1029/2008GC002332</a>; data
+          <a href="https://doi.org/10.1594/IEDA.100001">doi:10.1594/IEDA.100001</a>), medium
+          resolution, about 240&nbsp;m cells. Gives the seafloor relief, the section, the depth
+          readings and the deepest point. Licence CC BY 4.0.
+          <a href="https://www.gmrt.org/">https://www.gmrt.org/</a> (terms:
+          <a href="https://www.gmrt.org/about/terms_of_use.php">https://www.gmrt.org/about/terms_of_use.php</a>)
+        </li>
+        <li>
+          China and Nepal joint survey of Mount Everest, height announced 8&nbsp;December 2020. Gives
+          Everest's height, 8,848.86&nbsp;m. Published figure.
+          <a href="https://www.aljazeera.com/news/2020/12/8/mt-everest-nepal-china-announce-revised-height-at-8848-metres">https://www.aljazeera.com/news/2020/12/8/mt-everest-nepal-china-announce-revised-height-at-8848-metres</a>
+        </li>
+        <li>
+          Greenaway, S. F. et al. (2021), Revised depth of the Challenger Deep from submersible
+          transects, Deep-Sea Research I. Gives the published depth of Challenger Deep,
+          10,935&nbsp;m ±&nbsp;6&nbsp;m, in its note. Published figure.
+          <a href="https://repository.library.noaa.gov/view/noaa/33477">https://repository.library.noaa.gov/view/noaa/33477</a>
+        </li>
+      </ol>
+
+      <h3>Licences</h3>
+      <p>
+        GMRT data are licensed under CC BY 4.0; credit: Ryan, W.B.F. et al. (2009), Global
+        Multi-Resolution Topography synthesis, Geochem. Geophys. Geosyst., 10, Q03014.
+      </p>
+
+      <h3>Download the data</h3>
+      <ul class="downloads">
+        <li>
+          <a href="layers/relief.png" download="relief.png">relief.png</a>, the seabed heights in
+          metres as a Terrarium PNG, the format many web maps use for terrain. CC BY 4.0, GMRT
+          (Ryan et al. 2009).
+        </li>
+        <li>
+          <a href="layers/section.json" download="section.json">section.json</a>, the depth
+          profile along 142.2081°&nbsp;E at full grid resolution. CC BY 4.0, GMRT (Ryan et al. 2009).
+        </li>
+      </ul>
+      <p>
+        The code and the data steps are in the piece folder on GitHub:
+        <a href="https://github.com/LaurenzThiele/Atlas-Lab/tree/main/mariana-trench-dive">github.com/LaurenzThiele/Atlas-Lab/tree/main/mariana-trench-dive</a>
+      </p>
+      <p id="fetched" class="quiet"></p>
+    </dialog>
+
+  </body>
+</html>
