@@ -1,0 +1,438 @@
+{
+ "crs": "EPSG:25833",
+ "central_meridian": 15,
+ "page_type": "data-draw",
+ "grid": {
+  "x_m": [
+   -120000,
+   1150000
+  ],
+  "y_m": [
+   6400000,
+   7980000
+  ],
+  "height_cell_m": 1000,
+  "texture_cell_m": 500,
+  "height_size": [
+   1270,
+   1580
+  ],
+  "max_height_m": 2288.1
+ },
+ "fps": 30,
+ "length_s": 15.5,
+ "frames": 465,
+ "frame_px": [
+  1080,
+  1920
+ ],
+ "hero_frame": 30,
+ "beats": [
+  {
+   "id": "hook",
+   "start_s": 0.0,
+   "end_s": 2.0,
+   "ease": "none",
+   "camera": {
+    "from": {
+     "centre": [
+      14.5757,
+      65.0133
+     ],
+     "zoom": 4.73,
+     "pitch": 0,
+     "bearing": 0,
+     "fit": "hook",
+     "xy": [
+      481005.0,
+      7515813.0
+     ],
+     "width_km": 1360.9
+    },
+    "to": {
+     "centre": [
+      14.5757,
+      65.0133
+     ],
+     "zoom": 4.78,
+     "pitch": 0,
+     "bearing": 0,
+     "fit": "hook",
+     "xy": [
+      481005.0,
+      7515813.0
+     ],
+     "width_km": 1314.543
+    }
+   },
+   "layers": [
+    "relief_90m_flat",
+    "neighbour_fade"
+   ]
+  },
+  {
+   "id": "relief",
+   "start_s": 2.0,
+   "end_s": 4.5,
+   "ease": "power2.inOut",
+   "camera": {
+    "from": {
+     "centre": [
+      14.5757,
+      65.0133
+     ],
+     "zoom": 4.73,
+     "pitch": 0,
+     "bearing": 0,
+     "fit": "hook",
+     "xy": [
+      481005.0,
+      7515813.0
+     ],
+     "width_km": 1360.9
+    },
+    "to": {
+     "centre": [
+      8.2,
+      61.25
+     ],
+     "zoom": 6.82,
+     "pitch": 58,
+     "bearing": 20,
+     "fit": "jotunheimen",
+     "xy": [
+      126914.0,
+      6819121.0
+     ],
+     "width_km": 359.864
+    }
+   },
+   "layers": [
+    "relief_90m",
+    "neighbour_fade",
+    "top_fade"
+   ]
+  },
+  {
+   "id": "plants",
+   "start_s": 4.5,
+   "end_s": 8.0,
+   "ease": "power2.inOut",
+   "camera": {
+    "from": {
+     "centre": [
+      8.2,
+      61.25
+     ],
+     "zoom": 6.82,
+     "pitch": 58,
+     "bearing": 20,
+     "fit": "jotunheimen",
+     "xy": [
+      126914.0,
+      6819121.0
+     ],
+     "width_km": 359.864
+    },
+    "to": {
+     "centre": [
+      10.5,
+      63.2
+     ],
+     "zoom": 5.91,
+     "pitch": 55,
+     "bearing": 22,
+     "fit": "wide",
+     "xy": [
+      84641.0,
+      6609259.0
+     ],
+     "width_km": 603.0
+    }
+   },
+   "layers": [
+    "relief_90m",
+    "neighbour_fade",
+    "top_fade",
+    "hydro_plants"
+   ]
+  },
+  {
+   "id": "lines",
+   "start_s": 8.0,
+   "end_s": 11.5,
+   "ease": "power2.inOut",
+   "camera": {
+    "from": {
+     "centre": [
+      10.5,
+      63.2
+     ],
+     "zoom": 5.91,
+     "pitch": 55,
+     "bearing": 22,
+     "fit": "wide",
+     "xy": [
+      84641.0,
+      6609259.0
+     ],
+     "width_km": 603.0
+    },
+    "to": {
+     "centre": [
+      10.5,
+      63.2
+     ],
+     "zoom": 5.91,
+     "pitch": 55,
+     "bearing": 26,
+     "fit": "wide",
+     "xy": [
+      84641.0,
+      6609259.0
+     ],
+     "width_km": 603.0
+    }
+   },
+   "layers": [
+    "relief_90m",
+    "neighbour_fade",
+    "top_fade",
+    "hydro_plants",
+    "lines_300_420kv",
+    "cities"
+   ]
+  },
+  {
+   "id": "number",
+   "start_s": 11.5,
+   "end_s": 14.0,
+   "ease": "power2.inOut",
+   "camera": {
+    "from": {
+     "centre": [
+      10.5,
+      63.2
+     ],
+     "zoom": 5.91,
+     "pitch": 55,
+     "bearing": 26,
+     "fit": "wide",
+     "xy": [
+      84641.0,
+      6609259.0
+     ],
+     "width_km": 603.0
+    },
+    "to": {
+     "centre": [
+      10.5,
+      63.2
+     ],
+     "zoom": 5.91,
+     "pitch": 55,
+     "bearing": 30,
+     "fit": "wide",
+     "xy": [
+      84641.0,
+      6609259.0
+     ],
+     "width_km": 603.0
+    }
+   },
+   "layers": [
+    "relief_90m",
+    "neighbour_fade",
+    "top_fade",
+    "hydro_plants",
+    "lines_300_420kv"
+   ]
+  },
+  {
+   "id": "end",
+   "start_s": 14.0,
+   "end_s": 15.5,
+   "ease": "power2.inOut",
+   "camera": {
+    "from": {
+     "centre": [
+      10.5,
+      63.2
+     ],
+     "zoom": 5.91,
+     "pitch": 55,
+     "bearing": 30,
+     "fit": "wide",
+     "xy": [
+      84641.0,
+      6609259.0
+     ],
+     "width_km": 603.0
+    },
+    "to": {
+     "centre": [
+      14.5757,
+      65.0133
+     ],
+     "zoom": 4.73,
+     "pitch": 0,
+     "bearing": 0,
+     "fit": "hook",
+     "xy": [
+      481005.0,
+      7515813.0
+     ],
+     "width_km": 1360.9
+    }
+   },
+   "layers": [
+    "relief_90m",
+    "neighbour_fade",
+    "wash_ink_75"
+   ]
+  }
+ ],
+ "camera_tweens": [
+  {
+   "target": "exaggeration",
+   "from": 0,
+   "to": 4,
+   "start_s": 2.0,
+   "end_s": 4.5,
+   "ease": "power2.inOut"
+  },
+  {
+   "target": "exaggeration",
+   "from": 4,
+   "to": 9,
+   "start_s": 4.5,
+   "end_s": 8.0,
+   "ease": "power2.inOut"
+  },
+  {
+   "target": "exaggeration",
+   "from": 9,
+   "to": 0,
+   "start_s": 14.0,
+   "end_s": 15.5,
+   "ease": "power2.inOut"
+  },
+  {
+   "target": "cities",
+   "from": 0,
+   "to": 1,
+   "start_s": 10.0,
+   "end_s": 10.2,
+   "ease": "none"
+  },
+  {
+   "target": "cities",
+   "from": 1,
+   "to": 0,
+   "start_s": 11.3,
+   "end_s": 11.5,
+   "ease": "none"
+  },
+  {
+   "target": "plant_pulse",
+   "from": 0,
+   "to": 1,
+   "start_s": 11.6,
+   "end_s": 12.6,
+   "ease": "none"
+  },
+  {
+   "target": "data_opacity",
+   "from": 1,
+   "to": 0,
+   "start_s": 14.0,
+   "end_s": 15.0,
+   "ease": "power1.inOut"
+  }
+ ],
+ "data_track": {
+  "plants_start_s": 4.5,
+  "plants_last_s": 7.8,
+  "pop_frames": 6,
+  "lines_start_s": 8.0,
+  "lines_end_s": 11.3
+ },
+ "page": {
+  "default_view": {
+   "centre": [
+    10.5,
+    63.2
+   ],
+   "zoom": 5.91,
+   "pitch": 55,
+   "bearing": 22,
+   "fit": "wide",
+   "exaggeration": 9,
+   "xy": [
+    84641.0,
+    6609259.0
+   ],
+   "width_km": 603.0
+  },
+  "draw_frames": [
+   135,
+   345
+  ]
+ },
+ "look": {
+  "background": "#0F141A",
+  "height_ramp": [
+   "#141c26",
+   "#22324a",
+   "#3a5677",
+   "#6f8fb3",
+   "#c9d6e6"
+  ],
+  "height_ramp_domain_m": [
+   0,
+   1900
+  ],
+  "plants": "#FFB000",
+  "lines": "#F4F1EA",
+  "cities": "#F4F1EA",
+  "exaggeration": {
+   "hook": 0,
+   "relief": 4,
+   "wide": 9
+  },
+  "light": {
+   "azimuth_deg": 315,
+   "altitude_deg": 40
+  }
+ },
+ "points": {
+  "kvilldal": {
+   "lat": 59.5118,
+   "lon": 6.5846,
+   "xy": [
+    24544.9,
+    6627214.6
+   ]
+  },
+  "oslo": {
+   "lat": 59.9133,
+   "lon": 10.739,
+   "xy": [
+    261819.0,
+    6649424.3
+   ]
+  },
+  "bergen": {
+   "lat": 60.3943,
+   "lon": 5.3259,
+   "xy": [
+    -31860.3,
+    6734502.4
+   ]
+  }
+ },
+ "figures": {
+  "hydro_capacity_mw": 30474,
+  "transmission_km": 9154
+ }
+}

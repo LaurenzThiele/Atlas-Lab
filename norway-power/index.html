@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Where Norway’s power comes from | Atlas Lab</title>
+    <meta
+      name="description"
+      content="A 3D model of mainland Norway with its hydropower plants and its 300 and 420 kV power lines. Hydro is 94% of the capacity in its large plants."
+    />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="favicon-32.png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <script type="module" crossorigin src="./assets/index-N9WA0RZx.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-yc2uG1Fa.css">
+  </head>
+  <body>
+    <main id="scene" aria-label="3D model of mainland Norway with its hydropower plants and main power lines"></main>
+
+    <!-- Labels on the model: placed by ui.js on every frame, hidden where they would collide. -->
+    <svg id="leaders" aria-hidden="true"></svg>
+    <div id="labels"></div>
+
+    <header id="title-block">
+      <h1>Norway’s power plants and grid</h1>
+      <p class="lede">Hydro is <strong>94%</strong> of the capacity in its large plants</p>
+    </header>
+
+    <section id="legend" aria-label="Key">
+      <p id="controls" class="waiting"><span class="verb">Click</span> a plant or a line to read it. <span class="verb">Drag</span> to tilt and turn, <span class="verb">Ctrl + drag</span> or <span class="verb">right-drag</span> to move, <span class="verb">scroll</span> to zoom.</p>
+      <ul class="key">
+        <li>
+          <svg class="sample" viewBox="0 0 22 22" width="22" height="22" aria-hidden="true">
+            <circle cx="11" cy="11" r="10" fill="#FFB000" fill-opacity="0.15" />
+            <circle cx="11" cy="11" r="5" fill="#FFB000" />
+          </svg>
+          <span class="entry">Hydropower plant, sized by capacity</span>
+          <span class="count" id="count-mw"><span class="readout">0</span><span class="unit">&nbsp;MW</span></span>
+        </li>
+        <li>
+          <svg class="sample" viewBox="0 0 22 22" width="22" height="22" aria-hidden="true">
+            <line x1="1" y1="11" x2="21" y2="11" stroke="#F4F1EA" stroke-opacity="0.14" stroke-width="10" />
+            <line x1="1" y1="11" x2="21" y2="11" stroke="#F4F1EA" stroke-opacity="0.95" stroke-width="2.5" />
+          </svg>
+          <span class="entry">300 and 420&nbsp;kV power line</span>
+          <span class="count" id="count-km"><span class="readout">0</span><span class="unit">&nbsp;km</span></span>
+        </li>
+      </ul>
+      <p class="legend-title">Plant capacity</p>
+      <!-- Filled by ui.js: three discs at the size the model draws them in the default view. -->
+      <div class="capacity-row"></div>
+      <div class="scale-row">
+        <div id="km-scale">
+          <svg aria-hidden="true"><path /></svg>
+          <span class="km-label"></span>
+        </div>
+        <div id="north" role="img" aria-label="North arrow">
+          <svg viewBox="0 0 28 28" width="28" height="28" aria-hidden="true">
+            <circle cx="14" cy="14" r="12.5" fill="none" stroke="#F4F1EA" stroke-opacity="0.6" stroke-width="1" />
+            <path class="head" d="M14 4.5l3.2 9.5H10.8z" />
+            <path d="M14 14v9.5" />
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <nav id="buttons" aria-label="Model controls">
+      <button id="replay" type="button" aria-label="Draw it again">
+        <svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path d="M3.8 9a5.2 5.2 0 1 0 1.6-3.8" /><path d="M5.2 2.4v3h3" /></svg>
+      </button>
+      <button id="home" type="button" aria-label="Back to the default view">
+        <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M5 8V5h3M15 8V5h-3M5 12v3h3M15 12v3h-3" /></svg>
+      </button>
+      <button id="info" class="group-start" type="button" aria-label="About this scene" aria-haspopup="dialog">
+        <svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><circle cx="9" cy="9" r="7" /><path d="M9 8v5" /><path d="M9 5.2v1.3" /></svg>
+      </button>
+    </nav>
+
+    <div id="tooltip" role="tooltip" hidden></div>
+
+    <!-- The reading: a small plate floating beside the plant or line, like a label on a fuse board. -->
+    <div id="note" hidden></div>
+    <div id="note-live" class="visually-hidden" aria-live="polite"></div>
+
+    <dialog id="about" class="notes" aria-labelledby="about-title" tabindex="-1">
+      <button id="about-close" class="close" type="button" aria-label="Close">
+        <svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path d="M4 4l10 10M14 4L4 14" /></svg>
+      </button>
+      <h2 id="about-title">About this scene</h2>
+      <p>
+        Mainland Norway as a model, with every hydropower plant in the WRI Global Power Plant
+        Database and every 300 and 420&nbsp;kV power line in OpenStreetMap drawn onto it. Plants are
+        sized by their capacity; the database lists only the large plants and dates from 2021, so
+        small hydro and most wind farms are missing. Heights are drawn 9 times taller than they are.
+      </p>
+
+      <h3>Sources</h3>
+      <ol class="sources">
+        <li>
+          World Resources Institute, Global Energy Observatory, Google, KTH Royal Institute of
+          Technology in Stockholm, Enipedia: Global Power Plant Database v1.3.0 (2021). Gives the
+          hydropower plants, their capacity and the hydro share. Licence CC BY 4.0.
+          <a href="https://datasets.wri.org/datasets/global-power-plant-database">https://datasets.wri.org/datasets/global-power-plant-database</a>
+        </li>
+        <li>
+          OpenStreetMap contributors: power lines of 300 and 420&nbsp;kV and the city points for Oslo
+          and Bergen, queried through the Overpass API. Gives the grid and its length. Licence ODbL
+          1.0, © OpenStreetMap contributors.
+          <a href="https://www.openstreetmap.org/copyright">https://www.openstreetmap.org/copyright</a>
+        </li>
+        <li>
+          ESA / Copernicus: Copernicus DEM GLO-90 (2021 release, AWS Open Data). Gives the relief,
+          the heights and the highest point. Free licence with notice: "Produced using Copernicus
+          WorldDEM-90 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided
+          under COPERNICUS by the European Union and ESA; all rights reserved".
+          <a href="https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM">https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM</a>
+        </li>
+        <li>
+          Natural Earth: Admin 0 Countries, 1:10m. Gives the mainland outline and the neighbouring
+          countries. Public domain.
+          <a href="https://www.naturalearthdata.com/">https://www.naturalearthdata.com/</a>
+        </li>
+      </ol>
+
+      <h3>Download the data</h3>
+      <ul class="downloads">
+        <li>
+          <a href="layers/plants.json" download="plants.json">plants.json</a>, the 291 hydropower
+          plants with name, capacity in MW and position in EPSG:25833 metres, largest first.
+          CC BY 4.0, WRI.
+        </li>
+        <li>
+          <a href="layers/lines.json" download="lines.json">lines.json</a>, the 300 and 420&nbsp;kV
+          lines in EPSG:25833 metres, in the order they draw. ODbL, © OpenStreetMap contributors.
+        </li>
+        <li>
+          <a href="layers/heights.png" download="heights.png">heights.png</a>, the heights of the
+          mainland in metres at 1&nbsp;km cells as a Terrarium PNG (height = R × 256 + G + B / 256 minus
+          32768). Copernicus DEM licence, with the notice above.
+        </li>
+      </ul>
+      <p>
+        The code and the data steps are in the piece folder on GitHub:
+        <a href="https://github.com/LaurenzThiele/Atlas-Lab/tree/main/norway-power">https://github.com/LaurenzThiele/Atlas-Lab/tree/main/norway-power</a>
+      </p>
+      <p id="fetched" class="quiet"></p>
+    </dialog>
+
+  </body>
+</html>
