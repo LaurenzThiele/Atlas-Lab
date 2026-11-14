@@ -1,0 +1,59 @@
+[
+  {
+    "id": "deepest_depth",
+    "value": 10932.5,
+    "unit": "m below sea level",
+    "display": "10,932 m",
+    "source": "GMRT Global Multi-Resolution Topography (Lamont-Doherty, CC BY 4.0)",
+    "method": "Deepest cell of the GMRT medium-resolution grid over the southern Mariana Trench.",
+    "check": "Published 10,935 m +/- 6 m; difference -2.5 m (0.02%), inside the 5% rule and inside the published uncertainty. Greenaway et al. (2021), Revised depth of the Challenger Deep from submersible transects, Deep-Sea Research I; https://repository.library.noaa.gov/view/noaa/33477"
+  },
+  {
+    "id": "deepest_location",
+    "value": [
+      11.3342,
+      142.2081
+    ],
+    "unit": "degrees (lat N, lon E)",
+    "display": "11.33° N 142.21° E",
+    "source": "GMRT Global Multi-Resolution Topography (Lamont-Doherty, CC BY 4.0)",
+    "method": "Centre of the deepest grid cell.",
+    "check": "Published Challenger Deep at 11.332° N 142.202° E; my cell is 0.71 km away, under 4 grid cells. Stewart & Jamieson (2019), The five deeps, Earth-Science Reviews 197, 102896; https://ui.adsabs.harvard.edu/abs/2019ESRv..19702896S"
+  },
+  {
+    "id": "counter_mark",
+    "value": 6000,
+    "unit": "m below sea level",
+    "display": "6,000 m",
+    "source": "GMRT Global Multi-Resolution Topography (Lamont-Doherty, CC BY 4.0)",
+    "method": "A round value the depth counter passes mid dive (storyboard frame 2).",
+    "check": "The dive goes deeper (10,932 m), so the counter really passes it."
+  },
+  {
+    "id": "everest_height",
+    "value": 8848.86,
+    "unit": "m above sea level",
+    "display": "8,849 m",
+    "source": "China and Nepal joint survey, 2020",
+    "method": "Published height of Everest, rounded to the metre for the label.",
+    "check": "China and Nepal joint survey, announced 8 Dec 2020; https://www.aljazeera.com/news/2020/12/8/mt-everest-nepal-china-announce-revised-height-at-8848-metres"
+  },
+  {
+    "id": "water_above_everest",
+    "value": 2083,
+    "unit": "m",
+    "display": "2,083 m",
+    "source": "GMRT Global Multi-Resolution Topography (Lamont-Doherty, CC BY 4.0); China and Nepal joint survey, 2020",
+    "method": "Rounded deepest depth minus rounded Everest height, so the screen adds up.",
+    "check": "With the published depth: 2,086 m (0.15% off), inside the 5% rule."
+  },
+  {
+    "id": "grid_cell_size",
+    "value": 239,
+    "unit": "m",
+    "display": "about 240 m grid",
+    "source": "GMRT Global Multi-Resolution Topography (Lamont-Doherty, CC BY 4.0)",
+    "method": "Mean of the cell width and height at the deepest point (degrees to metres).",
+    "check": "GMRT GridServer metadata for this box gives 244.6 m per node."
+  }
+]

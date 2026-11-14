@@ -1,0 +1,17 @@
+[project]
+name = "mariana-trench-dive"
+version = "0.1.0"
+description = "AtlasLab: how deep the Mariana Trench really is (DEEP DIVE 01)"
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=2.3",
+    "pillow>=13.0.0",
+    "rasterio>=1.4",
+    "requests>=2.32",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
