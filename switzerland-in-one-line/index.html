@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>A straight line across Switzerland | Atlas Lab</title>
+    <meta
+      name="description"
+      content="A 3D model of Switzerland cut along one straight line, 185 km from the Rhine at Basel to the Dufourspitze, the highest point of Switzerland."
+    />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="favicon-32.png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <script type="module" crossorigin src="./assets/index-Dz49h4n8.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-CFkwP7wz.css">
+  </head>
+  <body>
+    <main id="scene" aria-label="3D model of Switzerland cut along a straight line from Basel to Monte Rosa"></main>
+
+    <!-- Labels on the model: placed by ui.js on every frame, hidden where they would collide. -->
+    <svg id="leaders" aria-hidden="true"></svg>
+    <div id="labels"></div>
+
+    <header id="title-block">
+      <h1>A straight line across Switzerland</h1>
+      <p class="lede">One line, 185&nbsp;km, from the Rhine at Basel (246&nbsp;m) to the Dufourspitze (4,634&nbsp;m), the highest point of Switzerland.</p>
+    </header>
+
+    <section id="legend" aria-label="Key">
+      <!-- The map controls line: what a click gives, then the gestures. Always shown while the
+           model is interactive; it waits only for the height grid, so the first click reads. -->
+      <p id="hint" class="gone"><span class="verb">Click</span> the model to read the height. <span class="verb">Drag</span> to tilt and turn, <span class="verb">Ctrl + drag</span> or <span class="verb">right-drag</span> to move, <span class="verb">scroll</span> to zoom.</p>
+      <ul class="key">
+        <li>
+          <svg class="sample" viewBox="0 0 24 10" width="24" height="10" aria-hidden="true">
+            <path d="M1 5h22" stroke="#FFB000" stroke-width="3" />
+          </svg>
+          The line, Basel to Monte Rosa
+        </li>
+      </ul>
+      <p class="legend-title">Height above sea level</p>
+      <div class="ramp-wrap">
+        <div class="ramp"></div>
+        <svg class="ramp-ticks" aria-hidden="true"></svg>
+        <div class="ramp-labels"></div>
+      </div>
+      <div class="scale-row">
+        <div id="km-scale">
+          <svg aria-hidden="true"><path /></svg>
+          <span class="km-labels"></span>
+        </div>
+        <div id="north" role="img" aria-label="North arrow">
+          <svg viewBox="0 0 30 30" width="30" height="30" aria-hidden="true">
+            <text x="15" y="8.5" text-anchor="middle">N</text>
+            <path class="head" d="M15 10.5l3.4 8.5h-6.8z" />
+            <path d="M15 19v9" />
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <nav id="buttons" aria-label="Model controls">
+      <button id="play" type="button" aria-label="Play the animation">
+        <svg class="icon-play" viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path d="M5.5 3.5v11l9-5.5z" /></svg>
+      </button>
+      <button id="home" class="group-start" type="button" aria-label="Back to the default view">
+        <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M5 8V5h3M15 8V5h-3M5 12v3h3M15 12v3h-3" /></svg>
+      </button>
+      <button id="info" class="group-start" type="button" aria-label="About this scene" aria-haspopup="dialog">
+        <svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><circle cx="9" cy="9" r="7" /><path d="M9 8v5" /><path d="M9 5.2v1.3" /></svg>
+      </button>
+    </nav>
+
+    <!-- While the animation plays, the only control: close it. -->
+    <button id="close-animation" class="map-button" type="button" aria-label="Close the animation" hidden>
+      <svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path d="M4 4l10 10M14 4L4 14" /></svg>
+    </button>
+
+    <div id="tooltip" role="tooltip" hidden></div>
+
+    <!-- The reading's marker: level rings round the Amber dot, drawn by ui.js. -->
+    <svg id="marker" aria-hidden="true"></svg>
+    <div id="note" hidden></div>
+    <div id="note-live" class="visually-hidden" aria-live="polite"></div>
+
+    <dialog id="about" class="notes" aria-labelledby="about-title" tabindex="-1">
+      <button id="about-close" class="close" type="button" aria-label="Close">
+        <svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path d="M4 4l10 10M14 4L4 14" /></svg>
+      </button>
+      <h2 id="about-title">About this scene</h2>
+      <p>
+        A model of Switzerland cut along one straight line through Basel and the Dufourspitze,
+        185&nbsp;km from the Rhine on the German border to Monte Rosa on the Italian border. The
+        heights come from the Copernicus 30&nbsp;m elevation model, one every 30&nbsp;m along the line, and
+        are drawn 9 times taller in 3D and 17 times taller in the side view. A 30&nbsp;m grid reads
+        sharp summits a little low, so the height of the Dufourspitze is the official one from the
+        swisstopo map.
+      </p>
+
+      <h3>Sources</h3>
+      <ol class="sources">
+        <li>
+          ESA and the Copernicus programme, served by the AWS Open Data Registry (Sinergise):
+          Copernicus DEM GLO-30, 2021 release, about 30&nbsp;m. Gives the corridor relief, the profile
+          and every height on the line. Copernicus DEM licence, free for any use with the notice
+          below.
+          <a href="https://registry.opendata.aws/copernicus-dem/">https://registry.opendata.aws/copernicus-dem/</a>
+          (licence:
+          <a href="https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM">https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM</a>)
+        </li>
+        <li>
+          ESA and the Copernicus programme, served by the AWS Open Data Registry (Sinergise):
+          Copernicus DEM GLO-90, 2021 release, about 90&nbsp;m. Gives the relief of the base map. Same
+          licence and link.
+        </li>
+        <li>
+          Federal Office of Topography swisstopo: swissBOUNDARIES3D, release <span class="date">2026-01</span>. Gives the
+          Swiss border, where the line starts and ends. Free geodata, open use with the source
+          named.
+          <a href="https://data.geo.admin.ch/ch.swisstopo.swissboundaries3d/">https://data.geo.admin.ch/ch.swisstopo.swissboundaries3d/</a>
+          (terms:
+          <a href="https://www.swisstopo.admin.ch/en/terms-of-use-free-geodata-and-geoservices">https://www.swisstopo.admin.ch/en/terms-of-use-free-geodata-and-geoservices</a>)
+        </li>
+        <li>
+          Federal Office of Topography swisstopo: swissNAMES3D, release 2026. Gives the names and
+          positions of Basel, the Dufourspitze and the labelled places. Same terms.
+          <a href="https://data.geo.admin.ch/ch.swisstopo.swissnames3d/">https://data.geo.admin.ch/ch.swisstopo.swissnames3d/</a>
+        </li>
+        <li>
+          Federal Office of Topography swisstopo: national map height of the Dufourspitze,
+          4,634&nbsp;m, as quoted in
+          <a href="https://en.wikipedia.org/wiki/Dufourspitze">https://en.wikipedia.org/wiki/Dufourspitze</a>
+        </li>
+      </ol>
+
+      <h3>Licences</h3>
+      <p>
+        Produced using Copernicus WorldDEM-30 © DLR e.V. <span class="date">2010-2014</span> and © Airbus Defence and Space
+        GmbH <span class="date">2014-2018</span> provided under COPERNICUS by the European Union and ESA; all rights
+        reserved.
+      </p>
+      <p>
+        Produced using Copernicus WorldDEM-90 © DLR e.V. <span class="date">2010-2014</span> and © Airbus Defence and Space
+        GmbH <span class="date">2014-2018</span> provided under COPERNICUS by the European Union and ESA; all rights
+        reserved.
+      </p>
+      <p>Borders and names: Federal Office of Topography swisstopo.</p>
+
+      <h3>Download the data</h3>
+      <ul class="downloads">
+        <li>
+          <a href="layers/profile.json" download="profile.json">profile.json</a>, the ground
+          height every 30&nbsp;m along the line, as pairs of km and metres above sea level. Produced
+          using Copernicus WorldDEM-30 © DLR e.V. <span class="date">2010-2014</span> and © Airbus Defence and Space GmbH
+          <span class="date">2014-2018</span> provided under COPERNICUS by the European Union and ESA; all rights reserved.
+        </li>
+        <li>
+          <a href="layers/corridor.png" download="corridor.png">corridor.png</a>, the 15&nbsp;km strip
+          east of the line in 60&nbsp;m cells, as a Terrarium PNG (height = R × 256 + G + B / 256 minus
+          32768). Produced using Copernicus WorldDEM-30 © DLR e.V. <span class="date">2010-2014</span> and © Airbus Defence
+          and Space GmbH <span class="date">2014-2018</span> provided under COPERNICUS by the European Union and ESA; all
+          rights reserved.
+        </li>
+      </ul>
+      <p>
+        The code and the data steps are in the piece folder on GitHub:
+        <a href="https://github.com/LaurenzThiele/Atlas-Lab/tree/main/switzerland-in-one-line">https://github.com/LaurenzThiele/Atlas-Lab/tree/main/switzerland-in-one-line</a>
+      </p>
+      <p id="fetched" class="quiet"></p>
+    </dialog>
+
+  </body>
+</html>
