@@ -127,7 +127,10 @@ HERO_FRAME = 30
 LINE_MID = (7.7292, 46.74765)
 TOP_SUBJECT = [0, 470, 1080, 1560]
 SLICE_SUBJECT = [0, 500, 1080, 1060]
-SIDE_SUBJECT = [0, 420, 1080, 960]
+# The side view's subject reaches 80 px past the frame on both sides: on a narrow window the
+# page then leaves room beside the profile for the "0 km" and "185 km" labels under its ends.
+# The video maps its frame 1:1 and is not affected.
+SIDE_SUBJECT = [-80, 420, 1160, 960]
 TOP_ZOOM = 7.7905  # 242 m per pixel on the frame at the line's mid latitude
 TOP = {
     "centre": LINE_MID,

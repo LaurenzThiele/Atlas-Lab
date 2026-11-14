@@ -173,7 +173,7 @@ export function createIndicators(container, config, { labels = true } = {}) {
       const end = i === 0 || i === kmTicks.length - 1;
       const keep = video
         ? box[0] >= sx0 && box[1] <= sx1
-        : end || !boxes.some(([l, r]) => box[0] < r + MIN_GAP_PX * f && box[1] > l - MIN_GAP_PX * f);
+        : end || !boxes.some(([l, r]) => box[0] < r + MIN_GAP_PX && box[1] > l - MIN_GAP_PX); // 8 px on screen
       t.label.setAttribute("display", keep ? "" : "none");
       t.tick.setAttribute("display", keep ? "" : "none");
       if (keep) boxes.push(box);
