@@ -1,0 +1,82 @@
+[
+  {
+    "id": "hydro_share",
+    "value": 93.6,
+    "unit": "% of installed capacity",
+    "display": "94%",
+    "label": "of the capacity is hydro (large plants in the WRI database, 2021)",
+    "source": "Global Power Plant Database v1.3.0 (WRI, 2021)",
+    "method": "Hydro capacity / all capacity of the 306 Norwegian plants (Wind 623 MW, Gas 1,454 MW, Hydro 30,474 MW).",
+    "check": "SSB Table 6, installed capacity 2021, hydro 34,075 of 40,257 MW = 84.6%; https://www.ssb.no/en/energi-og-industri/energi/statistikk/elektrisitet: difference +9.0 points (+10.6%), outside the 5% rule. Cause: the database takes Norway from the ENTSO-E list of large units, so it has 623 MW of wind against about 5,000 MW in SSB and misses most small hydro. Label needed."
+  },
+  {
+    "id": "hydro_capacity",
+    "value": 30474,
+    "unit": "MW",
+    "display": "30,474 MW",
+    "label": "large plants in the WRI database, 2021",
+    "source": "Global Power Plant Database v1.3.0 (WRI, 2021)",
+    "method": "Sum of capacity_mw over the plants with primary_fuel Hydro; the counter runs to this value as the plants light up.",
+    "check": "SSB Table 6, hydro 2021; https://www.ssb.no/en/energi-og-industri/energi/statistikk/elektrisitet: 34,075, difference -10.6%, outside the 5% rule, label needed. Cause: small hydro plants are not in the ENTSO-E list."
+  },
+  {
+    "id": "hydro_plants",
+    "value": 291,
+    "unit": "plants",
+    "display": "291 hydropower plants",
+    "label": "large plants in the WRI database, 2021",
+    "source": "Global Power Plant Database v1.3.0 (WRI, 2021)",
+    "method": "Number of rows with primary_fuel Hydro.",
+    "check": "NVE, hydro plants per 31.12.2024; https://www.nve.no/energi/energisystem/kraftproduksjon/: 1,791, difference -83.8%, outside the 5% rule, label needed. Cause: the database holds the large plants only; do not show this as all of Norway's plants."
+  },
+  {
+    "id": "largest_plant",
+    "value": 1444,
+    "unit": "MW",
+    "display": "KVILLDAL",
+    "label": "Norway's largest hydro plant (name only, no MW on screen)",
+    "source": "Global Power Plant Database v1.3.0 (WRI, 2021)",
+    "method": "Hydro plant with the highest capacity_mw, at 59.5118 N 6.5846 E (source ENTSOE).",
+    "check": "Statkraft, Kvilldal installed capacity; https://www.statkraft.com/Global-presence/norway/kvilldal-hydropower-plant/: 1,240, difference +16.5%, outside the 5% rule, label needed. The ranking agrees (Statkraft and SNL: Norway's largest by capacity), so the name goes on screen and the MW does not."
+  },
+  {
+    "id": "all_capacity",
+    "value": 32551,
+    "unit": "MW",
+    "display": "32,551 MW",
+    "label": "all plants in the database (not for screen)",
+    "source": "Global Power Plant Database v1.3.0 (WRI, 2021)",
+    "method": "Sum of capacity_mw over all Norwegian plants (denominator of the share).",
+    "check": "SSB Table 6, all types 2021; https://www.ssb.no/en/energi-og-industri/energi/statistikk/elektrisitet: 40,257, difference -19.1%, outside the 5% rule, label needed"
+  },
+  {
+    "id": "transmission_km",
+    "value": 9154,
+    "unit": "km",
+    "display": "9,200 km",
+    "label": "of 300 and 420 kV lines",
+    "source": "OpenStreetMap power lines (© OpenStreetMap contributors, ODbL)",
+    "method": "Geodesic length of OSM power=line ways with a top voltage of 300 or 420 kV, cut to the mainland border (line length, not circuit length).",
+    "check": "Statnett annual report 2021, overhead lines in operation, 300 kV 4,092 km + 420 kV 4,706 km; https://www.statnett.no/globalassets/om-statnett/investorrelasjoner/arsrapporter/statnett-arsrapport-2021.pdf: 8,798, difference +4.0%, inside the 5% rule. OSM is from today and Statnett keeps upgrading 300 kV lines to 420 kV. Energy Facts Norway's 'about 12,000 km' adds 132 kV transmission lines and cables, so it is not the same count."
+  },
+  {
+    "id": "hv_lines_km",
+    "value": 19981,
+    "unit": "km",
+    "display": "20,000 km",
+    "label": "of lines of 100 kV and more (not for screen)",
+    "source": "OpenStreetMap power lines (© OpenStreetMap contributors, ODbL)",
+    "method": "Geodesic length of all 7,166 OSM power=line ways of 100 kV or more, cut to the mainland border; the lines the reel draws.",
+    "check": "no published total for 100 kV and up to compare with (Energy Facts Norway: regional grid 33 to 132 kV about 19,000 km, transmission about 12,000 km, https://energifaktanorge.no/en/norsk-energiforsyning/kraftnett/); not checked, keep it off screen."
+  },
+  {
+    "id": "highest_point",
+    "value": 2445,
+    "unit": "m above sea level",
+    "display": "GALDHØPIGGEN 2,445 m",
+    "label": "highest point of the relief",
+    "source": "Copernicus DEM GLO-90 (ESA / Copernicus)",
+    "method": "Highest GLO-90 cell over the mainland tiles, at 61.6358 N 8.3133 E, 0.1 km from the surveyed summit of Galdhøpiggen.",
+    "check": "Store norske leksikon, Galdhøpiggen; https://snl.no/Galdh%C3%B8piggen: 2,469, difference -1.0%, inside the 5% rule"
+  }
+]

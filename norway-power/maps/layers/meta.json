@@ -1,0 +1,24 @@
+{
+ "sources": [
+  {
+   "name": "Global Power Plant Database v1.3.0",
+   "downloaded": "2026-11-12"
+  },
+  {
+   "name": "Natural Earth 1:10m Cultural Vectors, Admin 0 Countries",
+   "downloaded": "2026-11-12"
+  },
+  {
+   "name": "OpenStreetMap power lines of 100 kV and more in Norway (Overpass API)",
+   "downloaded": "2026-11-12"
+  },
+  {
+   "name": "OpenStreetMap cities in Norway (Overpass API)",
+   "downloaded": "2026-11-12"
+  },
+  {
+   "name": "Copernicus DEM GLO-90 (120 tiles)",
+   "downloaded": "2026-11-12"
+  }
+ ]
+}

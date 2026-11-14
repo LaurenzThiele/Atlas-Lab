@@ -11,6 +11,7 @@ Maps made from free, open data. Each comes with its code and data steps, so anyo
 | <img src="tsunami-ripples/docs/snapshot.png" width="240" alt="Every tsunami on record"> | Every tsunami on record | Every recorded tsunami runup since 684 on a globe, as rings sized by water height. | [tsunami-ripples](tsunami-ripples/) | [Open](https://laurenzthiele.github.io/Atlas-Lab/tsunami-ripples/) |
 | <img src="egypt-nile-dots/docs/snapshot.png" width="240" alt="Where Egypt's people live"> | Where Egypt's people live | Where Egypt's 115.5 million people live on 1 km squares: 95% of them on 2.2% of the land, along the Nile. | [egypt-nile-dots](egypt-nile-dots/) | [Open](https://laurenzthiele.github.io/Atlas-Lab/egypt-nile-dots/) |
 | <img src="mariana-trench-dive/docs/snapshot.png" width="240" alt="How deep is the Mariana Trench really?"> | How deep is the Mariana Trench really? | The trench in 3D, down to 10,932 m, with Everest dropped in | [mariana-trench-dive](mariana-trench-dive/) | [Open](https://laurenzthiele.github.io/Atlas-Lab/mariana-trench-dive/) |
+| <img src="norway-power/docs/snapshot.png" width="240" alt="Where Norway's power comes from"> | Where Norway's power comes from | Norway's large power plants and high-voltage grid in 3D: 94% of the capacity is hydro | [norway-power](norway-power/) | [Open](https://laurenzthiele.github.io/Atlas-Lab/norway-power/) |
 
 ## Licence
 
