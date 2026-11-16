@@ -1,0 +1,9 @@
+Follow CLAUDE.md. Build a 3D map of
+every building in Miami (Overture Maps
+buildings, latest release, box
+-80.32,25.70,-80.11,25.88) in a neon
+dusk look: dark ground, teal and pink by
+height, pink sky at the horizon. Then
+film a 30 s reel of the camera gliding
+south down the coast from Miami Beach to
+downtown and save it as reel.mp4.

@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Miami's buildings at their real height | Atlas Lab</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="favicon-32.png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <meta
+      name="description"
+      content="An interactive 3D map of every building from Miami Beach to Brickell, each raised to its height from Overture Maps open data."
+    />
+    <script type="module" crossorigin src="./assets/index-B6-pMm5t.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-DipCpFoe.css">
+  </head>
+  <!-- I set the furniture of this map the way a printed atlas sets its title, key and notes. All of
+       it lives in this file and ui.js: createMap() in main.js draws the map alone, without any of it. -->
+  <body class="atlas">
+    <div
+      id="map"
+      role="application"
+      aria-label="3D map of Miami's buildings, each raised to its height. Click a building to see its height and where that height comes from."
+    ></div>
+
+    <header id="title">
+      <h1>Miami's buildings at their real height</h1>
+      <p>
+        <b data-figure="real_height"></b> of the buildings from Miami Beach to Brickell have a real
+        height.
+      </p>
+    </header>
+
+    <!-- The click note: a Miami valet ticket, set beside the tower at roof height. -->
+    <div id="ticket" hidden>
+      <div class="stub">
+        <span class="hole" aria-hidden="true"></span>
+        <span class="stub-label" aria-hidden="true">HEIGHT TICKET</span>
+      </div>
+      <div class="body">
+        <h3 class="name"></h3>
+        <p class="height"></p>
+        <p class="sentence"></p>
+        <p class="source">Source: Overture Maps buildings 2026-10-21.0</p>
+      </div>
+    </div>
+    <p id="note-live" class="visually-hidden" aria-live="polite"></p>
+
+    <div id="foot">
+      <!-- The one hint line: what a click does, then the gestures. Touch screens get their own words. -->
+      <p id="hint">
+        <span class="wide">
+          <i>Click</i> a building to see its height, where that height comes from and who mapped it.
+          <i>Drag</i> to move, <i>Ctrl + drag</i> or <i>right-drag</i> to tilt and turn, <i>scroll</i> to
+          zoom.
+        </span>
+        <span class="narrow">
+          <i>Tap</i> a building to see its height, where that height comes from and who mapped it.
+          <i>Drag</i> to move, <i>two fingers</i> to tilt and turn, <i>pinch</i> to zoom.
+        </span>
+      </p>
+    </div>
+
+    <div id="buttons" role="group" aria-label="Map view">
+      <button id="zoom-in" type="button" aria-label="Zoom in">
+        <svg viewBox="0 0 20 20" width="16" height="16"><path d="M10 5v10M5 10h10" /></svg>
+      </button>
+      <button id="zoom-out" type="button" aria-label="Zoom out">
+        <svg viewBox="0 0 20 20" width="16" height="16"><path d="M5 10h10" /></svg>
+      </button>
+      <button id="north" class="group" type="button" aria-label="Reset north and tilt">
+        <svg viewBox="0 0 20 20" width="16" height="16"><path class="filled" d="M10 3.5l3.2 12.5L10 13.4 6.8 16z" /></svg>
+      </button>
+      <button id="tilt" class="group" type="button" aria-label="Back to flat" data-on="true">
+        <svg viewBox="0 0 20 20" width="16" height="16">
+          <path d="M10 3.5l6 3.2v6.6l-6 3.2-6-3.2V6.7zM4 6.7l6 3.3 6-3.3M10 10v6.5" />
+        </svg>
+      </button>
+      <button id="start-view" type="button" aria-label="Back to the start view">
+        <svg viewBox="0 0 20 20" width="16" height="16"><path d="M5 8V5h3M15 8V5h-3M5 12v3h3M15 12v3h-3" /></svg>
+      </button>
+    </div>
+    <p id="tip" class="tip" aria-hidden="true" hidden></p>
+
+    <button id="sheet-open" type="button" aria-label="Show the sheet" hidden>
+      <svg class="sheet-icon" viewBox="0 0 18 18" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"><rect x="2" y="3" width="14" height="12"/><rect x="11" y="3" width="5" height="12" fill="currentColor" stroke="none"/><path d="M8 6.5L5.5 9 8 11.5"/></svg>
+      Map info
+    </button>
+
+    <aside id="sheet" aria-label="Map info: layers, figures and sources">
+      <button id="grab" type="button" aria-label="Open or close the map info" aria-expanded="false">
+        <span></span>
+      </button>
+      <div class="sheet-top">
+        <button id="sheet-fold" type="button" aria-label="Hide the sheet">
+          <svg class="sheet-icon" viewBox="0 0 18 18" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"><rect x="2" y="3" width="14" height="12"/><path d="M11 3v12"/><path d="M5.5 6.5L8 9 5.5 11.5"/></svg>
+        </button>
+      </div>
+
+      <section>
+        <!-- No options on this map, so the how-to-read note sits after the heading. -->
+        <h2 id="layers-heading">
+          Layers <small>click to show or hide</small>
+          <button id="info" class="info" type="button" aria-label="Where the heights come from" aria-describedby="info-tip">
+            <svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true">
+              <circle cx="7" cy="7" r="6" />
+              <path d="M7 6.2v4M7 3.8v0.6" />
+            </svg>
+          </button>
+        </h2>
+        <p id="info-tip" class="tip info-tip" role="tooltip" hidden></p>
+        <div id="key">
+          <!-- In the order the map draws them, top first. -->
+          <button class="k" type="button" data-layer="labels" aria-pressed="true">
+            <span class="sample s-labels">Brickell</span>
+            <span class="name">Labels</span>
+            <span class="count" id="count-labels"></span>
+          </button>
+          <button class="k" type="button" data-layer="buildings" aria-pressed="true">
+            <span class="sample s-buildings">
+              <!-- Three blocks raised to 8, 25 and 120 m on the ramp: top lit, sides darker. -->
+              <svg viewBox="0 0 76 22" width="76" height="22" aria-hidden="true">
+                <g class="block"><path style="fill:#2A9D9A" d="M4 21v-5h12v5z"/><path style="fill:#3CB8B3" d="M4 16l3-2h12l-3 2z"/><path style="fill:#1E7B7B" d="M16 21v-5l3-2v5z"/></g>
+                <g class="block"><path style="fill:#4FD1C1" d="M24 21v-10h12v10z"/><path style="fill:#7DE0D4" d="M24 11l3-2h12l-3 2z"/><path style="fill:#36A99B" d="M36 21v-10l3-2v10z"/></g>
+                <g class="block"><path style="fill:#FF5FA2" d="M44 21v-18h12v18z"/><path style="fill:#FF9AC4" d="M44 3l3-2h12l-3 2z"/><path style="fill:#D8457F" d="M56 21v-18l3-2v18z"/></g>
+              </svg>
+            </span>
+            <span class="name">Buildings</span>
+            <span class="count" id="count-buildings"></span>
+          </button>
+          <!-- The buildings' colour ramp, by height. -->
+          <div class="k-detail" id="buildings-detail">
+            <div class="ramp" id="ramp-height" aria-label="Height ramp, from 0 to 220 m and up">
+              <span class="ramp-steps"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+              <span class="ramp-values" id="ramp-values"></span>
+            </div>
+          </div>
+          <button class="k" type="button" data-layer="water" aria-pressed="true">
+            <span class="sample s-water"></span>
+            <span class="name">Water</span>
+            <span class="count" id="count-water"></span>
+          </button>
+          <button class="k" type="button" data-layer="land" aria-pressed="true">
+            <span class="sample s-land"></span>
+            <span class="name">Land</span>
+            <span class="count" id="count-land"></span>
+          </button>
+        </div>
+
+      </section>
+
+      <section>
+        <h2>In numbers</h2>
+        <div id="numbers"></div>
+      </section>
+
+      <section>
+        <h2>Sources</h2>
+        <ol id="sources">
+          <li>
+            Overture Maps Foundation, Overture Maps buildings, release 2026-10-21.0 (2026): the
+            buildings layer and every figure in In numbers. ODbL 1.0.
+            <a href="https://docs.overturemaps.org/getting-data/">https://docs.overturemaps.org/getting-data/</a>
+          </li>
+          <li>
+            Overture Maps Foundation, Overture Maps base (land and water), release 2026-10-21.0
+            (2026): the land and water layers. ODbL 1.0.
+            <a href="https://docs.overturemaps.org/getting-data/">https://docs.overturemaps.org/getting-data/</a>
+          </li>
+        </ol>
+        <p class="links">
+          <button id="about-open" class="text" type="button">About this map</button>
+          <button id="download-open" class="text" type="button">Download the data</button>
+        </p>
+      </section>
+    </aside>
+
+    <dialog id="about" aria-labelledby="about-title" tabindex="-1">
+      <form method="dialog" class="close">
+        <button type="submit" aria-label="Close">
+          <svg viewBox="0 0 20 20" width="16" height="16"><path d="M5 5l10 10M15 5L5 15" /></svg>
+        </button>
+      </form>
+      <p class="tip" aria-hidden="true" hidden></p>
+      <h2 id="about-title">About this map</h2>
+      <p>
+        Every footprint from Overture Maps buildings (release 2026-10-21.0) that touches the box from
+        Miami Beach to Brickell, extruded to its height. When a building has no height, I use its
+        floors x 3.5&nbsp;m, and when it has neither, 4&nbsp;m. Towers whose height Overture keeps only
+        on building parts show at their outline height.
+      </p>
+      <h3>Licences</h3>
+      <p>
+        Overture Maps buildings and base are published under the Open Data Commons Open Database
+        License (ODbL) 1.0.
+      </p>
+      <h3>Attribution (ODbL)</h3>
+      <p class="credit">
+        © OpenStreetMap contributors, Overture Maps Foundation, Microsoft Global ML Building
+        Footprints (ODbL), USGS 3D Elevation Program
+      </p>
+      <!-- Filled from layers/meta.json, which prepare.py writes from data/raw/sources.json. -->
+      <p id="fetched" class="fetched"></p>
+    </dialog>
+
+    <dialog id="download" aria-labelledby="download-title" tabindex="-1">
+      <form method="dialog" class="close">
+        <button type="submit" aria-label="Close">
+          <svg viewBox="0 0 20 20" width="16" height="16"><path d="M5 5l10 10M15 5L5 15" /></svg>
+        </button>
+      </form>
+      <p class="tip" aria-hidden="true" hidden></p>
+      <h2 id="download-title">Download the data</h2>
+      <p>
+        Credit: © OpenStreetMap contributors, Overture Maps Foundation, Microsoft Global ML Building
+        Footprints (ODbL), USGS 3D Elevation Program. The files are under the ODbL 1.0.
+      </p>
+      <h3>The layers this map draws</h3>
+      <ul>
+        <li>
+          <a href="layers/download/land.geojson.zip" download>land.geojson.zip</a>: the land, clipped to
+          the map's ground box, as GeoJSON. ODbL 1.0, credit as above.
+        </li>
+        <li>
+          <a href="layers/download/water.geojson.zip" download>water.geojson.zip</a>: the sea, the bay,
+          lakes and canals, clipped to the same box, as GeoJSON. ODbL 1.0, credit as above.
+        </li>
+      </ul>
+      <p>
+        The buildings layer is too big to keep as a file here. It is built from
+        <a href="https://docs.overturemaps.org/getting-data/">Overture Maps buildings</a>, release
+        2026-10-21.0. Rebuild this layer with <code>uv run maps/prepare.py</code> (see the README).
+      </p>
+      <h3>How I made it</h3>
+      <ul>
+        <li><a href="ai/prompt.txt" download>prompt.txt</a>: the prompt I gave Claude Code.</li>
+        <li>
+          <a href="ai/rules-for-claude.md" download>rules-for-claude.md</a>: the rules file that went
+          with it.
+        </li>
+      </ul>
+    </dialog>
+
+  </body>
+</html>

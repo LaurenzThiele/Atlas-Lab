@@ -1,0 +1,30 @@
+{
+ "sources": [
+  {
+   "name": "Overture Maps buildings, Miami",
+   "downloaded": "2026-11-16"
+  },
+  {
+   "name": "Overture Maps land, Miami (wide box)",
+   "downloaded": "2026-11-16"
+  },
+  {
+   "name": "Overture Maps water, Miami (wide box)",
+   "downloaded": "2026-11-16"
+  }
+ ],
+ "areas": {
+  "land_km2": 6646,
+  "water_km2": 6346
+ },
+ "tallest": {
+  "fid": 82980,
+  "lon": -80.19036,
+  "lat": 25.76304,
+  "h": 265.0,
+  "src": "height",
+  "name": "Panorama Tower",
+  "floors": 85,
+  "by": "OpenStreetMap"
+ }
+}
