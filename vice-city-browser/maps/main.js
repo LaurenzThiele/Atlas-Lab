@@ -117,7 +117,7 @@ async function fetchJson(url) {
   return response.json();
 }
 
-function buildStyle(layersUrl) {
+function buildStyle(layersUrl, labels) {
   const visibility = (name) => (state.show.includes(name) ? "visible" : "none");
   const at = (name) => new URL(name, layersUrl).href;
   return {
@@ -137,7 +137,10 @@ function buildStyle(layersUrl) {
         promoteId: "fid",
       },
       base: { type: "vector", url: `pmtiles://${at("base.pmtiles")}` },
-      labels: { type: "geojson", data: at("labels.geojson") },
+      // The five names come in as data, fetched with the other small files: a GeoJSON source
+      // given a URL is fetched inside MapLibre's worker, and on GitHub Pages that fetch failed now
+      // and then ("Failed to fetch") for reasons I could not see from the page.
+      labels: { type: "geojson", data: labels },
     },
     // The sky above the horizon. Its fog settings only act on terrain, and this map has none:
     // 187,203 extruded buildings on even a flat terrain ran at under 1 frame a second here (the
@@ -386,13 +389,14 @@ export async function createMap(container, options = {}) {
   if (options.layers) setLayers(options.layers);
   const view = { ...START_VIEW, ...options.view };
   try {
-    const [figures, meta] = await Promise.all([
+    const [figures, meta, labels] = await Promise.all([
       fetchJson(new URL("figures.json", layersUrl).href),
       fetchJson(new URL("meta.json", layersUrl).href),
+      fetchJson(new URL("labels.geojson", layersUrl).href),
     ]);
     map = new maplibregl.Map({
       container,
-      style: buildStyle(layersUrl),
+      style: buildStyle(layersUrl, labels),
       ...view,
       maxPitch: MAX_PITCH,
       // Sharp on high-density screens, but never more than twice the pixels: a phone at 3x
@@ -405,7 +409,15 @@ export async function createMap(container, options = {}) {
     });
     await new Promise((resolve, reject) => {
       map.once("load", resolve);
-      map.once("error", (event) => reject(event.error ?? new Error("map error")));
+      // Only a broken style stops the map. A tile that fails to arrive is reported by MapLibre
+      // in the console and the rest of the map carries on, as it would after the first draw.
+      const onError = (event) => {
+        if (event.sourceId || event.tile) return;
+        map.off("error", onError);
+        reject(event.error ?? new Error("map error"));
+      };
+      map.on("error", onError);
+      map.once("load", () => map.off("error", onError));
     });
     map.addLayer(probeLayer);
     addHaze(map.getCanvasContainer());

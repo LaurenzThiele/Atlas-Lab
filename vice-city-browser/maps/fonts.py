@@ -61,7 +61,9 @@ def font_file(face: dict) -> Path:
 
 
 def write_subset(face: dict, text: str) -> Path:
-    font = TTFont(font_file(face))
+    # recalcTimestamp=False keeps the source font's date, so the same text gives the same file
+    # and a rebuild does not show the fonts as changed in git.
+    font = TTFont(font_file(face), recalcTimestamp=False)
     options = subset.Options()
     options.flavor = "woff2"
     # Keep the copyright and licence entries of the name table: the OFL travels with the font.
