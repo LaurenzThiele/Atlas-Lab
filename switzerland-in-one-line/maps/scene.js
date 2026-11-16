@@ -989,6 +989,9 @@ export function createScene(container, options) {
       frame: (fx, fy) => [frameMap.px + (fx - frameMap.ax) * frameMap.k, frameMap.py + (fy - frameMap.ay) * frameMap.k],
       scale: frameMap.k,
       video: Boolean(options.exactFrame),
+      // The side view's labels keep clear of the profile line and of the summit dot.
+      profile,
+      dotPx: (DOT_PX + RIM_PX) * uiScale,
     });
     renderer.render(scene, activeCamera);
     options.onDraw?.();
