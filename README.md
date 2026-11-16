@@ -13,6 +13,7 @@ Maps made from free, open data. Each comes with its code and data steps, so anyo
 | <img src="mariana-trench-dive/docs/snapshot.png" width="240" alt="How deep is the Mariana Trench really?"> | How deep is the Mariana Trench really? | The trench in 3D, down to 10,932 m, with Everest dropped in | [mariana-trench-dive](mariana-trench-dive/) | [Open](https://laurenzthiele.github.io/Atlas-Lab/mariana-trench-dive/) |
 | <img src="norway-power/docs/snapshot.png" width="240" alt="Where Norway's power comes from"> | Where Norway's power comes from | Norway's large power plants and high-voltage grid in 3D: 94% of the capacity is hydro | [norway-power](norway-power/) | [Open](https://laurenzthiele.github.io/Atlas-Lab/norway-power/) |
 | <img src="switzerland-in-one-line/docs/snapshot.png" width="240" alt="Switzerland in one line"> | Switzerland in one line | One straight line across Switzerland, from 246 m at Basel to 4,634 m on the Dufourspitze | [switzerland-in-one-line](switzerland-in-one-line/) | [Open](https://laurenzthiele.github.io/Atlas-Lab/switzerland-in-one-line/) |
+| <img src="vice-city-browser/docs/snapshot.png" width="240" alt="Miami's buildings at their real height"> | Miami's buildings at their real height | 187,203 Miami buildings in 3D at dusk, from Miami Beach to Brickell, built from Overture Maps with an AI agent and a rules file. | [vice-city-browser](vice-city-browser/) | [Open](https://laurenzthiele.github.io/Atlas-Lab/vice-city-browser/) |
 
 ## Licence
 

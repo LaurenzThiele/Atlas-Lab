@@ -1,0 +1,25 @@
+[project]
+name = "vice-city-browser"
+version = "0.1.0"
+description = "AtlasLab: real Miami in 3D from Overture Maps open data"
+requires-python = ">=3.12"
+dependencies = [
+    "geopandas>=1.2",
+    "overturemaps==2.1.1",
+    "pandas>=2.2",
+    "pyarrow>=21",
+    "shapely>=2.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+
+[dependency-groups]
+dev = [
+    "brotli>=1.2.1",
+    "fonttools>=4.68.0",
+    "ruff>=0.17.5",
+]

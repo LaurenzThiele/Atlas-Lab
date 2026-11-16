@@ -1,0 +1,843 @@
+/* The look of the page: a city at dusk that looks like a game but is all real data. The map is
+   the loud part (teal to pink towers under a pink horizon); the furniture is quiet dusk-violet
+   paper with neon-white ink, 1 px rules and square corners, no shadows, no glow. Righteous sets
+   the title and the names, Outfit every sentence and the key, JetBrains Mono the figures: the
+   readout of a game's score board, used only for numbers. */
+
+:root {
+  --paper: #1a1430; /* dusk violet: background, sky top and the paper of the sheet */
+  --ink: #f6eef5; /* neon white, 15.6:1 on the paper */
+  --quiet: #b9a8cc; /* 8.0:1 on the paper */
+  --highlight: #ffd23f; /* marquee yellow: only the clicked building */
+  --land: #2a2040;
+  --water: #0f2240;
+  --water-edge: #2c4c7a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--paper);
+  color: var(--ink);
+  overflow: hidden;
+}
+
+#map {
+  position: absolute;
+  inset: 0;
+  background: var(--paper);
+}
+
+.atlas {
+  --rule: #f6eef540; /* ink at 25 %, for decorative separators */
+  --control-rule: #f6eef566; /* ink at 40 %, 3.5:1 on the paper, for anything that marks a control */
+  --wash: rgb(26 20 48 / 88%);
+  --sheet-width: 340px;
+  --text: "Outfit", system-ui, sans-serif;
+  --display: "Righteous", system-ui, sans-serif;
+  --readout: "JetBrains Mono", ui-monospace, monospace;
+  font-family: var(--text);
+  font-size: 15px;
+  line-height: 1.45;
+  font-variant-ligatures: none;
+}
+
+.atlas #map {
+  right: var(--sheet-width);
+}
+
+.atlas.sheet-folded {
+  --sheet-width: 0px;
+}
+
+.atlas button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.atlas a {
+  color: inherit;
+  text-underline-offset: 2px;
+}
+
+/* One focus ring for every control, shown only for the keyboard. */
+.atlas :focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.atlas .maplibregl-canvas:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+}
+
+.atlas [hidden] {
+  display: none !important;
+}
+
+.atlas svg path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: square;
+}
+
+.atlas svg path.filled {
+  fill: currentColor;
+  stroke: none;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Title and lede sit straight on the dark top of the sky, with no box: ink reads at 13.7:1 there. */
+#title {
+  position: fixed;
+  z-index: 22;
+  left: 28px;
+  top: 22px;
+  width: 560px;
+  padding: 12px;
+  pointer-events: none;
+  isolation: isolate;
+}
+
+/* The lede reaches down into the pink horizon, where neon white falls to 1.9:1. Behind the title
+   block, and only there, a soft wash of the dusk paper whose edges fade out: the sky shows
+   through at the rim, so it reads as haze, not as a card. */
+#title::before {
+  content: "";
+  position: absolute;
+  inset: -28px -40px -30px -40px;
+  z-index: -1;
+  background: var(--wash);
+  mask-image:
+    linear-gradient(to right, transparent, #000 52px, #000 calc(100% - 140px), transparent),
+    linear-gradient(to bottom, transparent, #000 36px, #000 calc(100% - 44px), transparent);
+  mask-composite: intersect;
+}
+
+#title h1 {
+  margin: 0 0 10px;
+  font: 400 40px/1.08 var(--display);
+  letter-spacing: 0.005em;
+}
+
+#title p {
+  margin: 0;
+  max-width: 440px;
+  font-size: 17px;
+  line-height: 1.45;
+}
+
+#title b {
+  font-family: var(--readout);
+  font-weight: 700;
+  font-size: 0.94em;
+  white-space: nowrap;
+}
+
+/* The soft wash behind text on the map, used only where the text would fall under 4.5:1. */
+#foot > * {
+  isolation: isolate;
+}
+
+#foot > *::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--wash);
+  mask-image:
+    linear-gradient(to right, transparent, #000 10px, #000 calc(100% - 10px), transparent),
+    linear-gradient(to bottom, transparent, #000 10px, #000 calc(100% - 10px), transparent);
+  mask-composite: intersect;
+}
+
+#foot {
+  position: fixed;
+  z-index: 22;
+  left: 32px;
+  bottom: 20px;
+  max-width: calc(100vw - var(--sheet-width) - 120px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+#foot > * {
+  position: relative;
+  padding: 8px 12px;
+  margin: -6px -4px;
+}
+
+#hint {
+  max-width: 360px;
+  margin-bottom: 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--quiet);
+}
+
+#hint i {
+  font-style: normal;
+  color: var(--ink);
+}
+
+#hint .narrow {
+  display: none;
+}
+
+@media (hover: none) {
+  #hint .wide {
+    display: none;
+  }
+
+  #hint .narrow {
+    display: inline;
+  }
+}
+
+/* Map buttons: one flat strip, a hairline between buttons, a heavier rule between groups. */
+#buttons {
+  position: fixed;
+  z-index: 22;
+  right: calc(var(--sheet-width) + 16px);
+  bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+}
+
+#buttons button {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+}
+
+#buttons button + button {
+  border-top: 1px solid var(--control-rule);
+}
+
+#buttons button.group {
+  border-top: 1px solid var(--ink);
+}
+
+#buttons button:hover {
+  background: var(--rule);
+}
+
+#buttons button[data-on="true"] svg path {
+  stroke-width: 2.2;
+}
+
+/* The tooltip: a small label beside its button, level with it. */
+.tip {
+  position: fixed;
+  z-index: 40;
+  margin: 0;
+  padding: 3px 8px;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--ink);
+  font: 400 13px/1.3 var(--text);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.tip.info-tip {
+  width: 260px;
+  white-space: normal;
+  line-height: 1.4;
+}
+
+/* ------------------------------------------------------------------------------------------------
+   The height ticket: a Miami valet ticket, pale pink card, a stub with a punched hole above a
+   dashed perforation. Square corners, a 1 px dusk rule, no shadow. Text in #2A1630 (14.1:1),
+   the height in #C2185B (4.9:1), the source in #6E4E72 (5.9:1), all on #FBE6EE.
+   ------------------------------------------------------------------------------------------------ */
+#ticket {
+  position: fixed;
+  z-index: 23;
+  width: 232px;
+  background: #fbe6ee;
+  color: #2a1630;
+  border: 1px solid var(--paper);
+  pointer-events: none;
+  font-family: var(--text);
+}
+
+#ticket .stub {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 30px;
+  padding: 0 12px;
+  border-bottom: 1px dashed #2a1630;
+}
+
+#ticket .hole {
+  flex: none;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--paper);
+}
+
+#ticket .stub-label {
+  font: 400 11px/1 var(--readout);
+  letter-spacing: 0.1em;
+}
+
+#ticket .body {
+  padding: 10px 12px 11px;
+}
+
+#ticket .name {
+  margin: 0 0 2px;
+  font: 400 18px/1.2 var(--display);
+  overflow-wrap: anywhere;
+}
+
+#ticket .height {
+  margin: 0 0 4px;
+  font: 400 15px/1.1 var(--text);
+  color: #c2185b;
+}
+
+#ticket .height .num {
+  font: 700 30px/1.1 var(--readout);
+}
+
+#ticket .sentence {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.4;
+}
+
+#ticket .source {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #6e4e72;
+}
+
+/* The opening motion: slides up 8 px and fades in, 150 ms, ease out. */
+#ticket.opening {
+  animation: ticket-in 150ms ease-out;
+}
+
+@keyframes ticket-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #ticket.opening {
+    animation: none;
+  }
+}
+
+/* The sheet: one continuous column of solid dusk paper, with no tabs and no cards inside it. */
+#sheet {
+  position: fixed;
+  z-index: 30;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 340px;
+  padding: 0 20px 20px;
+  overflow-y: auto;
+  background: var(--paper);
+  border-left: 1px solid var(--rule);
+}
+
+.sheet-folded #sheet {
+  display: none;
+}
+
+.sheet-top {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: 44px;
+  margin: 0 -8px 12px 0;
+}
+
+.atlas .sheet-icon path {
+  stroke-width: 1.5;
+}
+
+.sheet-icon {
+  opacity: 0.75;
+}
+
+#sheet-fold:hover .sheet-icon,
+#sheet-open:hover .sheet-icon {
+  opacity: 1;
+}
+
+#sheet-fold {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+  border: 1px solid transparent;
+}
+
+#sheet-fold:hover {
+  border-color: var(--rule);
+}
+
+#grab {
+  display: none;
+}
+
+#sheet-open {
+  position: fixed;
+  z-index: 25;
+  right: 16px;
+  top: 24px;
+  height: 34px;
+  padding: 0 12px;
+  align-items: center;
+  gap: 8px;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  font: 400 14px/1 var(--text);
+}
+
+#sheet-open:not([hidden]) {
+  display: inline-flex;
+}
+
+#sheet section {
+  padding-bottom: 20px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--rule);
+}
+
+#sheet section:last-child {
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-bottom: 0;
+}
+
+#sheet h2 {
+  margin: 0 0 8px;
+  font: 400 19px/1.3 var(--display);
+}
+
+#layers-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+#layers-heading .info {
+  align-self: center;
+}
+
+#sheet h2 small {
+  margin-left: 6px;
+  font: normal 400 13px/1.3 var(--text);
+  color: var(--quiet);
+}
+
+.k {
+  display: grid;
+  grid-template-columns: 76px 1fr auto;
+  gap: 0 12px;
+  align-items: center;
+  width: 100%;
+  padding: 5px 0;
+}
+
+.k .name {
+  font-size: 15px;
+  line-height: 1.3;
+}
+
+.k .count {
+  max-width: 120px;
+  font-size: 12.5px;
+  line-height: 1.3;
+  text-align: right;
+  color: var(--quiet);
+}
+
+.k[aria-pressed="false"] {
+  color: var(--quiet);
+}
+
+.k[aria-pressed="false"] .sample {
+  opacity: 0.35;
+}
+
+.k[aria-pressed="false"] .name {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+/* Each sample is what the map really draws: the same colour, face and fill. */
+.sample {
+  position: relative;
+  display: block;
+  width: 76px;
+  height: 22px;
+}
+
+.s-labels {
+  display: flex;
+  align-items: center;
+  font: 600 14px/1 var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+
+.s-buildings svg {
+  display: block;
+}
+
+.s-buildings svg path {
+  stroke: none;
+}
+
+.atlas .s-buildings .block path {
+  stroke: none;
+}
+
+.s-water::before,
+.s-land::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 3px;
+  height: 16px;
+}
+
+.s-water::before {
+  background: var(--water);
+  border: 1px solid var(--water-edge);
+}
+
+.s-land::before {
+  background: var(--land);
+}
+
+/* What sits under an entry (the ramp) lines up with the entry's name. */
+.k-detail {
+  margin: 2px 0 6px 88px;
+}
+
+.k[aria-pressed="false"] + .k-detail {
+  opacity: 0.35;
+}
+
+.ramp-steps {
+  display: flex;
+  height: 10px;
+}
+
+.ramp-steps i {
+  flex: 1;
+}
+
+/* Each value sits under the left edge of its step, as the ramp's stops are the steps' starts. */
+.ramp-values {
+  display: flex;
+  margin-top: 3px;
+  font-size: 12.5px;
+  line-height: 1.3;
+  color: var(--quiet);
+}
+
+.ramp-values span {
+  flex: 1;
+  white-space: nowrap;
+}
+
+.atlas .info {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin: -3px 0;
+  color: var(--ink);
+}
+
+.atlas .info circle {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.1;
+}
+
+.atlas .info path {
+  stroke-width: 1.3;
+  stroke-linecap: round;
+}
+
+/* Figures as short lines: the number in JetBrains Mono, the words and units in Outfit. */
+.fig {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 10px;
+  line-height: 1.4;
+}
+
+.fig:last-child {
+  margin-bottom: 0;
+}
+
+.fig .num {
+  font-family: var(--readout);
+  font-weight: 700;
+  font-size: 17px;
+  white-space: nowrap;
+}
+
+.atlas .locator {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: -4px -7px 0 0;
+  color: var(--ink);
+  opacity: 0.75;
+}
+
+.atlas .locator:hover {
+  opacity: 1;
+}
+
+.atlas .locator path,
+.atlas .locator circle {
+  stroke: currentColor;
+  fill: none;
+}
+
+#sources {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+#sources li + li {
+  margin-top: 6px;
+}
+
+.links {
+  display: flex;
+  gap: 16px;
+  margin: 10px 0 0;
+  font-size: 14px;
+}
+
+.atlas button.text {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+/* About this map and the downloads: the same sheet of paper on every map. */
+dialog {
+  width: 680px;
+  max-width: calc(100vw - 16px);
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 28px;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--ink);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+dialog::backdrop {
+  background: rgb(26 20 48 / 55%);
+}
+
+.atlas dialog:focus,
+.atlas dialog:focus-visible {
+  outline: none;
+}
+
+dialog h2 {
+  margin: 0 0 12px;
+  font: 400 30px/1.1 var(--display);
+}
+
+dialog h3 {
+  margin: 16px 0 4px;
+  font: 600 15px/1.3 var(--text);
+}
+
+dialog a {
+  text-decoration: underline;
+}
+
+dialog .fetched {
+  margin-top: 16px;
+  white-space: pre-line;
+  color: var(--quiet);
+}
+
+dialog p,
+dialog ul {
+  margin: 0 0 8px;
+}
+
+dialog ul {
+  padding-left: 18px;
+}
+
+dialog li + li {
+  margin-top: 6px;
+}
+
+dialog form.close {
+  position: sticky;
+  top: -21px;
+  float: right;
+  margin: -21px -21px 0 8px;
+}
+
+dialog form.close button {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+}
+
+#load-error {
+  position: fixed;
+  z-index: 40;
+  left: 32px;
+  top: 200px;
+  margin: 0;
+  max-width: 400px;
+}
+
+/* Phones: nothing is hidden, only rearranged. The sheet becomes a bottom sheet with a grab line. */
+@media (max-width: 900px) {
+  .atlas {
+    --sheet-width: 0px;
+  }
+
+  .atlas #map {
+    bottom: 30%;
+  }
+
+  #title {
+    left: 4px;
+    top: 4px;
+    right: 4px;
+    width: auto;
+    padding: 8px 10px;
+  }
+
+  #title h1 {
+    margin-bottom: 4px;
+    font-size: 21px;
+    white-space: nowrap;
+  }
+
+  #title p {
+    font-size: 15px;
+    line-height: 1.35;
+  }
+
+  #foot {
+    left: 8px;
+    right: 54px;
+    bottom: calc(30% + 8px);
+    max-width: none;
+  }
+
+  #buttons {
+    right: 8px;
+    bottom: calc(30% + 8px);
+  }
+
+  #ticket {
+    width: min(232px, calc(100vw - 32px));
+  }
+
+  #sheet {
+    left: 0;
+    top: auto;
+    width: 100%;
+    height: 30%;
+    padding: 0 20px 20px;
+    border-left: 0;
+    border-top: 1px solid var(--ink);
+  }
+
+  .sheet-open #sheet {
+    height: calc(100% - 92px);
+  }
+
+  .sheet-folded #sheet {
+    display: block;
+  }
+
+  .sheet-top,
+  #sheet-fold,
+  #sheet-open,
+  #sheet-open:not([hidden]) {
+    display: none;
+  }
+
+  #grab {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: calc(100% + 40px);
+    height: 34px;
+    margin: 0 -20px 4px;
+    background: var(--paper);
+    touch-action: none;
+  }
+
+  #grab span {
+    display: block;
+    width: 44px;
+    border-top: 2px solid var(--quiet);
+  }
+
+  .k {
+    padding: 7px 0;
+  }
+}

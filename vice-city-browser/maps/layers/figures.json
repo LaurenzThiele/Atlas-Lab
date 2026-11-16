@@ -1,0 +1,58 @@
+[
+ {
+  "id": "buildings",
+  "value": 187203,
+  "unit": "buildings",
+  "display": "187,203",
+  "source": "Overture Maps buildings 2026-10-21.0",
+  "method": "Above-ground Overture footprints that touch the building box"
+ },
+ {
+  "id": "real_height",
+  "value": 183142,
+  "unit": "buildings",
+  "display": "183,142 (97.8%)",
+  "source": "Overture Maps buildings 2026-10-21.0",
+  "method": "Buildings with a value in the `height` field; share of all buildings in the box"
+ },
+ {
+  "id": "height_from_floors",
+  "value": 219,
+  "unit": "buildings",
+  "display": "219",
+  "source": "Overture Maps buildings 2026-10-21.0",
+  "method": "No `height` but `num_floors`: height = floors x 3.5 m"
+ },
+ {
+  "id": "height_default",
+  "value": 3842,
+  "unit": "buildings",
+  "display": "3,842",
+  "source": "Overture Maps buildings 2026-10-21.0",
+  "method": "Neither `height` nor `num_floors`: given 4 m"
+ },
+ {
+  "id": "tallest",
+  "value": 265.0,
+  "unit": "m",
+  "display": "265 m (Panorama Tower)",
+  "source": "Overture Maps buildings 2026-10-21.0",
+  "method": "Largest height in the box, with its names.primary"
+ },
+ {
+  "id": "towers_100m",
+  "value": 110,
+  "unit": "buildings",
+  "display": "110",
+  "source": "Overture Maps buildings 2026-10-21.0",
+  "method": "Buildings 100 m or taller (after the height fallbacks)"
+ },
+ {
+  "id": "frames",
+  "value": 900,
+  "unit": "frames",
+  "display": "900",
+  "source": "Reel setting",
+  "method": "Reel length 30 s x 30 fps (film setting, not data)"
+ }
+]

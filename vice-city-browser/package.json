@@ -1,0 +1,30 @@
+{
+  "name": "vice-city-browser",
+  "version": "1.0.0",
+  "description": "Miami's buildings at their real height: an interactive 3D map from Overture Maps open data",
+  "scripts": {
+    "predev": "uv run maps/fonts.py",
+    "dev": "vite --config maps/vite.config.js",
+    "prebuild": "uv run maps/fonts.py",
+    "build": "vite build --config maps/vite.config.js",
+    "snapshot": "node maps/snapshot.mjs",
+    "deploy": "npm run build && gh-pages -d maps/dist -e vice-city-browser --add --nojekyll"
+  },
+  "author": "Laurenz Thiele",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "maplibre-gl": "6.18.0",
+    "pmtiles": "4.5.0"
+  },
+  "devDependencies": {
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@fontsource/outfit": "^5.3.0",
+    "@fontsource/righteous": "^5.3.0",
+    "gh-pages": "^6.3.0",
+    "gsap": "^3.15.1",
+    "playwright": "^1.65.1",
+    "vite": "^8.3.8"
+  },
+  "private": true
+}
